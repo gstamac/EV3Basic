@@ -51,7 +51,3 @@ EndWhile
       new_selectmode = selectmode
     endif
   EndSub
-
-  Sub Sum(a, b, result)
-    result = a + b
-  EndSub

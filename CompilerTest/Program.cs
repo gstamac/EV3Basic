@@ -23,7 +23,15 @@ namespace Test
             //TestAssemble();
             //            TestDisassemble();
 
-            TestParser();
+            try
+            {
+                TestParser();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("ERROR: " + ex.Message);
+                Console.WriteLine(ex.StackTrace);
+            }
 
             Console.WriteLine("Finished");
             Console.ReadKey();
@@ -36,17 +44,19 @@ namespace Test
             using (StreamReader reader = new StreamReader(SOURCE_FILENAME))
             using (StreamWriter writer = new StreamWriter(lmsFilename))
             {
-                EV3Parser parser = new EV3Parser();
-                parser.Parse(reader);
+                EV3Compiler compiler = new EV3Compiler();
+                compiler.Parse(reader);
 
-                Console.Write(parser.Dump());
+                compiler.Errors.ForEach(e => Console.WriteLine($"ERROR: {e}"));
 
-                parser.GenerateEV3Code(writer);
+                Console.Write(compiler.Dump());
+
+                compiler.GenerateEV3Code(writer);
 
                 writer.WriteLine();
                 writer.WriteLine("---------------------------------------------------");
                 writer.WriteLine();
-                writer.Write(parser.Dump());
+                writer.Write(compiler.Dump());
             }
         }
 

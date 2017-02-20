@@ -1,56 +1,41 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.SmallBasic;
 
 namespace EV3BasicCompiler
 {
-    public enum EV3VariableType : int
-    {
-        Unknown = -1,
-        Int8 = 0,
-        Int16 = 1,
-        Int32 = 2,
-        Float = 3,
-        String = 4,
-    }
     public class EV3Variable
     {
-        public EV3Variable(string name)
+        private string ev3Name = "";
+
+        public EV3Variable(string name, TokenInfo tokenInfo)
         {
             Name = name;
             Type = EV3VariableType.Unknown;
-            IsArray = false;
-            References = new List<EV3Variable>();
+            TokenInfo = tokenInfo;
         }
 
-        public string Name { get; private set; }
+        private string name;
+        public string Name
+        {
+            get { return name; }
+            private set
+            {
+                name = value;
+                ev3Name = $"V{Name.ToUpper()}";
+            }
+        }
+
+        public TokenInfo TokenInfo { get; set; }
         public EV3VariableType Type { get; set; }
-        public bool IsArray { get; set; }
         public int MaxIndex { get; private set; }
         public string Comment { get; set; }
-        public List<EV3Variable> References { get; private set; }
 
-        public void UpdateVariableType(EV3VariableType type)
+        private void UpdateVariableType(EV3VariableType type)
         {
             if ((int)type > (int)Type)
                 Type = type;
-        }
-
-        public void UpdateVariableTypeFromReferences()
-        {
-            UpdateVariableTypeFromReferences(new List<EV3Variable>());
-        }
-
-        public void UpdateVariableTypeFromReferences(List<EV3Variable> trail)
-        {
-            List<EV3Variable> myTrail = new List<EV3Variable>(trail);
-            myTrail.Add(this);
-
-            foreach (EV3Variable reference in References.Except(myTrail))
-            {
-                reference.UpdateVariableTypeFromReferences(myTrail);
-                UpdateVariableType(reference.Type);
-            }
         }
 
         public void UpdateMaxIndex(int index)
@@ -58,29 +43,59 @@ namespace EV3BasicCompiler
             if (MaxIndex < index)
                 MaxIndex = index;
         }
-        public string GenerateCode()
+        public string GenerateDeclarationCode()
         {
-            if (IsArray)
-                return $"ARRAY16 {Name} {MaxIndex}";
+            if (Type.IsArray())
+                return $"ARRAY16 {ev3Name} {MaxIndex}";
             else
             {
                 switch (Type)
                 {
-                    case EV3VariableType.Unknown:
-                        return $"DATAS {Name} 252 // UNKNOWN";
                     case EV3VariableType.Int8:
-                        return $"DATA8 {Name}";
+                        return $"DATA8 {ev3Name}";
                     case EV3VariableType.Int16:
-                        return $"DATA16 {Name}";
+                        return $"DATA16 {ev3Name}";
                     case EV3VariableType.Int32:
-                        return $"DATA32 {Name}";
+                        return $"DATA32 {ev3Name}";
                     case EV3VariableType.Float:
-                        return $"DATAF {Name}";
+                        return $"DATAF {ev3Name}";
                     case EV3VariableType.String:
-                        return $"DATAS {Name} 252";
+                        return $"DATAS {ev3Name} 252";
                 }
             }
-            throw new Exception("This should not happen!");
+            return "";
+        }
+
+        public string GenerateInitializationCode()
+        {
+            if (Type.IsArray())
+                switch (Type)
+                {
+                    case EV3VariableType.Int8:
+                    case EV3VariableType.Int16:
+                    case EV3VariableType.Int32:
+                    case EV3VariableType.FloatArray:
+                        return $"CALL ARRAYCREATE_FLOAT {ev3Name}";
+                    case EV3VariableType.StringArray:
+                        return $"CALL ARRAYCREATE_STRING {ev3Name}";
+                }
+            else
+            {
+                switch (Type)
+                {
+                    case EV3VariableType.Int8:
+                        return $"MOVE8_8 0 {ev3Name}";
+                    case EV3VariableType.Int16:
+                        return $"MOVE16_16 0 {ev3Name}";
+                    case EV3VariableType.Int32:
+                        return $"MOVE32_32 0 {ev3Name}";
+                    case EV3VariableType.Float:
+                        return $"MOVEF_F 0.0 {ev3Name}";
+                    case EV3VariableType.String:
+                        return $"STRINGS DUPLICATE '' {ev3Name}";
+                }
+            }
+            return "";
         }
     }
 }

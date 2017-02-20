@@ -48,11 +48,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Compiler.cs" />
-    <Compile Include="EV3Parser.cs" />
+    <Compile Include="Error.cs" />
+    <Compile Include="EV3Compiler.cs" />
+    <Compile Include="EV3VariableType.cs" />
     <Compile Include="EV3Variable.cs" />
     <Compile Include="Expression.cs" />
     <Compile Include="LibraryEntry.cs" />
-    <Compile Include="ParserEx.cs" />
+    <Compile Include="SmallBasicParserExtensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
@@ -60,6 +62,7 @@
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
     <Compile Include="Scanner.cs" />
+    <Compile Include="SmallBasicExtensions.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Properties\Resources.resx">
