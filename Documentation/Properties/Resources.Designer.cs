@@ -158,7 +158,11 @@ namespace Documentation.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to .
+        ///   Looks up a localized string similar to &lt;H1 class=&quot;chapter&quot;&gt;Справочник по командам EV3 Бейсик&lt;/H1&gt;
+        ///&lt;P&gt;
+        ///&lt;STRONG&gt;Перевод: Андрей Степанов, «Карандаш и Самоделкин»&lt;/STRONG&gt;
+        ///&lt;/P&gt;
+        ///.
         /// </summary>
         internal static string ManualRU {
             get {

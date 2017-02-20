@@ -1,14 +1,26 @@
 selectmode = 0
-Sensor.SetMode(1, selectmode)
-
+sensorId = 4
+sensorId2 = sensorId
+test = selectmode + sensorId + sensorId2
+test1 = 3
+test1 = 3.5
+test12 = 4 + 3
+test13 = 5 + selectmode
+test2[2] = 19
+test3[1] = "xx"
+test4 = "1=1;2=X;3=10"
+test5 = "1=1;2=2;3=3"
+test6 = "1=1;2=2;3=3"
+test6[5] = "XX"
+Sensor.SetMode(sensorId, selectmode)
 
 While "True"
   LCD.StopUpdate()
   LCD.Clear()      
-  LCD.Write(0,0, Sensor.GetName(1))
-  LCD.Write(0,16, "MODE: "+Sensor.GetType(1)+":"+Sensor.GetMode(1)+" ("+selectmode+")")
-  LCD.Write(0,32, "PERCENT: "+ Sensor.ReadPercent(1))
-  raw = Sensor.ReadRaw(1,8)
+  LCD.Write(0,0, Sensor.GetName(sensorId))
+  LCD.Write(0,16, "MODE: "+Sensor.GetType(sensorId)+":"+Sensor.GetMode(sensorId)+" ("+selectmode+")")
+  LCD.Write(0,32, "PERCENT: "+ Sensor.ReadPercent(sensorId))
+  raw = Sensor.ReadRaw(sensorId,8)
   For i=0 To 3
     LCD.Write(0,64+i*16, "RAW"+i+":"+raw[i])
   endfor
@@ -19,16 +31,27 @@ While "True"
   
   Program.Delay(200)
   
-  click = Buttons.GetClicks()
-  If Text.IsSubText(click, "U") then
-    selectmode = selectmode+1
-    Sensor.SetMode(1, selectmode)
-  ElseIf Text.IsSubText(click,"D") then
-    selectmode = selectmode-1
-    Sensor.SetMode(1, selectmode)
-  ElseIf Text.IsSubText(click,"E") then
-    Sensor.SetMode(1, selectmode)
-  endif
-    
+  'new_selectmode = -1
+  ProcessButtons()
+  If new_selectmode >= 0 Then
+    selectmode = new_selectmode
+    Sensor.SetMode(sensorId, selectmode)
+  EndIf
   
 EndWhile
+  
+  Sub ProcessButtons
+    new_selectmode = -1
+    click = Buttons.GetClicks()
+    If Text.IsSubText(click, "U") then
+      new_selectmode = selectmode+1
+    ElseIf Text.IsSubText(click,"D") then
+      new_selectmode = selectmode-1
+    ElseIf Text.IsSubText(click,"E") then
+      new_selectmode = selectmode
+    endif
+  EndSub
+
+  Sub Sum(a, b, result)
+    result = a + b
+  EndSub

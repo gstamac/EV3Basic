@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.31101.0
+# Visual Studio 14
+VisualStudioVersion = 14.0.25123.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{5E2ACF19-CD12-438F-BF02-5EE25E4BFDD9}"
 EndProject
@@ -22,6 +22,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmallBasic10EV3Extension", "SmallBasic10EV3Extension\SmallBasic10EV3Extension.csproj", "{3A59574F-9711-4B3B-A713-0A3F3161205E}"
 EndProject
 Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "EV3BasicInstaller", "EV3BasicInstaller\EV3BasicInstaller.vdproj", "{77F4EC78-B79A-42C6-ABDE-15C1AE2D48B1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EV3BasicCompiler.Tests", "EV3BasicCompiler.Tests\EV3BasicCompiler.Tests.csproj", "{FF3072C8-F0AA-437E-9587-360C0606DE90}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -64,6 +66,10 @@ Global
 		{77F4EC78-B79A-42C6-ABDE-15C1AE2D48B1}.Debug|Any CPU.ActiveCfg = Debug
 		{77F4EC78-B79A-42C6-ABDE-15C1AE2D48B1}.Release|Any CPU.ActiveCfg = Release
 		{77F4EC78-B79A-42C6-ABDE-15C1AE2D48B1}.Release|Any CPU.Build.0 = Release
+		{FF3072C8-F0AA-437E-9587-360C0606DE90}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FF3072C8-F0AA-437E-9587-360C0606DE90}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FF3072C8-F0AA-437E-9587-360C0606DE90}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FF3072C8-F0AA-437E-9587-360C0606DE90}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
