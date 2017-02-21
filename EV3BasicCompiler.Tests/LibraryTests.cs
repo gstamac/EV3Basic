@@ -7,7 +7,7 @@ using System.Linq;
 namespace EV3BasicCompiler.Tests
 {
     [TestClass]
-    public class EV3Compiler_PlumbingTests : EV3CompilerTests
+    public class LibraryTests : EV3CompilerTestsBase
     {
         [TestMethod]
         public void Test()

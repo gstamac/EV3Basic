@@ -50,5 +50,15 @@ namespace EV3BasicCompiler
         {
             return variable.Name.Equals(arrayExpression.VariableName(), StringComparison.InvariantCultureIgnoreCase);
         }
+
+        public static string FullName(this PropertyExpression propertyExpression)
+        {
+            return propertyExpression.TypeName.NormalizedText + "." + propertyExpression.PropertyName.NormalizedText;
+        }
+
+        public static string FullName(this MethodCallExpression methodCallExpression)
+        {
+            return methodCallExpression.TypeName.NormalizedText + "." + methodCallExpression.MethodName.NormalizedText;
+        }
     }
 }

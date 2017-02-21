@@ -5,7 +5,7 @@ init
 	OUTPUT_RESET 0 15
 }
 
-subcall MOTORDECODEPORTSDESCRIPTOR  //  V
+subcall MOTORDECODEPORTSDESCRIPTOR  //  SV
 {
 	IN_S descriptor 8
 	OUT_8 layer
@@ -46,7 +46,7 @@ decoding_end:
 	RETURN
 }
 
-subcall MOTORDECODEPORTDESCRIPTOR  //  V
+subcall MOTORDECODEPORTDESCRIPTOR  //  SV
 {
 	IN_S descriptor 8
 	OUT_8 layer

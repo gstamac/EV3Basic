@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 namespace EV3BasicCompiler.Tests
 {
     [TestClass]
-    public class EV3Compiler_VariableInitializationTests : EV3CompilerTests
+    public class VariableInitializationTests : EV3CompilerTestsBase
     {
         [TestMethod]
         public void ShouldInitializeFloat()

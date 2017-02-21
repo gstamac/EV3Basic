@@ -61,10 +61,10 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
-    <Compile Include="EV3CompilerTests.cs" />
-    <Compile Include="EV3Compiler_PlumbingTests.cs" />
-    <Compile Include="EV3Compiler_VariableDeclarationTests.cs" />
-    <Compile Include="EV3Compiler_VariableInitializationTests.cs" />
+    <Compile Include="EV3CompilerTestsBase.cs" />
+    <Compile Include="LibraryTests.cs" />
+    <Compile Include="VariableDeclarationTests.cs" />
+    <Compile Include="VariableInitializationTests.cs" />
     <Compile Include="IntegrationTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

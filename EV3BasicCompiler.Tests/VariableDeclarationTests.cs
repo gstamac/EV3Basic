@@ -10,7 +10,7 @@ using System.Collections.Generic;
 namespace EV3BasicCompiler.Tests
 {
     [TestClass]
-    public class EV3Compiler_VariableDeclarationTests : EV3CompilerTests
+    public class VariableDeclarationTests : EV3CompilerTestsBase
     {
         [TestMethod]
         public void ShouldDeclareInt()
@@ -363,7 +363,17 @@ namespace EV3BasicCompiler.Tests
             TestIt(@"
                 raw = Sensor.ReadRaw(sensorId, 8)
             ", @"
-                DATAF VRAW
+                ARRAY16 VRAW 2
+            ");
+        }
+
+        [TestMethod]
+        public void ShouldDeclareInt_WhenReferencingExternalInlineFunction()
+        {
+            TestIt(@"
+                i = Mailbox.Receive(8)
+            ", @"
+                DATAS VI 252
             ");
         }
 
@@ -371,9 +381,9 @@ namespace EV3BasicCompiler.Tests
         public void ShouldDeclareInt_WhenReferencingExternalProperty()
         {
             TestIt(@"
-                raw = Dummy.Property
+                i = Buttons.Current
             ", @"
-                DATAF VRAW
+                DATAS VI 252
             ");
         }
 

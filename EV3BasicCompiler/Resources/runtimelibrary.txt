@@ -203,7 +203,7 @@ subcall ARRAYCREATE_FLOAT   // F
 	ARRAY FILL handle 0.0
 }
 
-subcall ARRAYSTORE_FLOAT   // FFFV
+subcall ARRAYSTORE_FLOAT   // FFA
 {
 	IN_F index
 	IN_F value	
@@ -232,7 +232,7 @@ arraybigenough:
 negativeindex:
 }
 
-subcall ARRAYGET_FLOAT     // FFF
+subcall ARRAYGET_FLOAT     // FAF
 {
 	IN_F index
 	OUT_F value
@@ -263,7 +263,7 @@ subcall ARRAYCREATE_STRING   // F
 	ARRAY FILL handle z
 }
 
-subcall ARRAYSTORE_STRING   // FFSV
+subcall ARRAYSTORE_STRING   // FSA
 {
 	IN_F index
 	IN_S v 252	

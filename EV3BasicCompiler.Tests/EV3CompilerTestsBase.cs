@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 
 namespace EV3BasicCompiler.Tests
 {
-    public class EV3CompilerTests
+    public class EV3CompilerTestsBase
     {
         protected void TestIt(string sbCode, string ev3Code)
         {
@@ -19,8 +19,17 @@ namespace EV3BasicCompiler.Tests
                 Console.WriteLine(compiler.Dump());
 
                 compiler.GenerateEV3Code(writer);
+                string code = writer.ToString();
 
-                CleanupCode(CleanupCompiledCode(writer.ToString())).Should().Be(CleanupCode(ev3Code));
+                Console.WriteLine("======> ERRORS <======");
+                foreach (Error error in compiler.Errors)
+                    Console.WriteLine(error);
+
+                Console.WriteLine("======> CODE <======");
+                Console.WriteLine(code);
+                Console.WriteLine("======> END CODE <======");
+
+                CleanupCode(CleanupCompiledCode(code)).Should().Be(CleanupCode(ev3Code));
                 compiler.Errors.Should().BeEmpty();
             }
         }
@@ -34,8 +43,17 @@ namespace EV3BasicCompiler.Tests
 
                 EV3BasicCompiler.Compiler c = new EV3BasicCompiler.Compiler();
                 c.Compile(fs, ofs, errors);
+                string code = Encoding.ASCII.GetString(ofs.ToArray());
 
-                CleanupCode(CleanupCompiledCode(Encoding.ASCII.GetString(ofs.ToArray()))).Should().Be(CleanupCode(ev3Code));
+                Console.WriteLine("======> ERRORS <======");
+                foreach (string error in errors)
+                    Console.WriteLine(error);
+
+                Console.WriteLine("======> CODE <======");
+                Console.WriteLine(code);
+                Console.WriteLine("======> END CODE <======");
+
+                CleanupCode(CleanupCompiledCode(code)).Should().Be(CleanupCode(ev3Code));
                 errors.Should().BeEmpty();
             }
         }
@@ -60,26 +78,7 @@ namespace EV3BasicCompiler.Tests
         protected string CleanupCode(string ev3Code)
         {
             ev3Code = new Regex("//[^\n\r]*").Replace(ev3Code, "");
-            //ev3Code = new Regex("[ ]+\r").Replace(ev3Code, "\r");
-            //ev3Code = new Regex("\n[ ]+").Replace(ev3Code, "\n");
-            ev3Code = new Regex("[ \r\n]*[\r\n]+[ \r\n]*").Replace(ev3Code, "\r\n");
-
-            //outEv3Code = RemoveLines(outEv3Code,
-            //    "DATA16 FD_NATIVECODECOMMAND",
-            //    "DATA16 FD_NATIVECODERESPONSE",
-            //    "DATA32 STOPLCDUPDATE",
-            //    "DATA32 NUMMAILBOXES",
-            //    "ARRAY16 LOCKS 2");
-
-            //outEv3Code = RemoveLines(outEv3Code,
-            //    "MOVE32_32 0 STOPLCDUPDATE",
-            //    "MOVE32_32 0 NUMMAILBOXES",
-            //    "OUTPUT_RESET 0 15",
-            //    "INPUT_DEVICE CLR_ALL -1",
-            //    "ARRAY CREATE8 0 LOCKS",
-            //    "ARRAY CREATE8 1 LOCKS",
-            //    "CALL PROGRAM_MAIN -1",
-            //    "PROGRAM_STOP -1");
+            ev3Code = new Regex("[ \r\n\t]*[\r\n]+[ \r\n\t]*").Replace(ev3Code, "\r\n");
 
             return ev3Code.Trim('\r', '\n');
         }

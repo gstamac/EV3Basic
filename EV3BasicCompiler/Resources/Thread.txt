@@ -13,7 +13,7 @@ init
 // It does a get and increment action, incrementing a counter 
 // and returning the original value in a seperate (thread-local) variable,
 // which can not be interrupted by another GETANDINC32 of other threads
-subcall GETANDINC32     // V
+subcall GETANDINC32     // FFV
 {
 	IN_32 counterin
 	IN_32 inc
@@ -28,7 +28,7 @@ subcall GETANDINC32     // V
 // a value in a byte array. It can not be interrupted by a TESTANDSET
 // which is called in another thread, but it can be interrupted by 
 // any other action of other threads.
-subcall GETANDSETLOCK           // V
+subcall GETANDSETLOCK           // FFF
 {
 	IN_F index						// index as float as being used in Basic. 
 	                                // when not valid do nothing and return newvalue as oldvalue (prevent aquiring lock)
