@@ -78,57 +78,61 @@ namespace EV3BasicCompiler
         public void GenerateEV3Code(TextWriter writer)
         {
             GenerateInitialization(writer);
-
-            writer.WriteLine("");
-
-            writer.WriteLine("vmthread MAIN");
-            writer.WriteLine("{");
-            GenerateMainThreadInitialization(writer);
-            GenerateMainThreadStart(writer);
-            writer.WriteLine("}");
-
-            writer.WriteLine("");
-
-            writer.WriteLine("subcall PROGRAM_MAIN");
-            writer.WriteLine("{");
-            GenerateMainProgramInitialization(writer);
-            GenerateMainProgramFinalization(writer);
-            writer.WriteLine("}");
+            GenerateMainThread(writer);
+            GenerateThreads(writer);
+            GeneratePrograms(writer);
+            GenerateReferences(writer);
         }
 
         private void GenerateInitialization(TextWriter writer)
         {
             library.GenerateCodeForGlobals(writer);
             variables.GenerateCodeForVariableDeclarations(writer);
+            // Write thread ids
         }
 
-        private void GenerateMainThreadInitialization(TextWriter writer)
+        private void GenerateMainThread(TextWriter writer)
         {
+            writer.WriteLine("");
+
+            writer.WriteLine("vmthread MAIN");
+            writer.WriteLine("{");
             library.GenerateCodeForRuntimeInit(writer);
             variables.GenerateCodeForVariableInitializations(writer);
-        }
-
-        private void GenerateMainThreadStart(TextWriter writer)
-        {
             writer.WriteLine("    ARRAY CREATE8 1 LOCKS");
+            // Write EV3.NATIVECODE if needed
             writer.WriteLine("    CALL PROGRAM_MAIN -1");
             writer.WriteLine("    PROGRAM_STOP -1");
+            writer.WriteLine("}");
         }
 
-        private void GenerateMainProgramInitialization(TextWriter writer)
+        private void GenerateThreads(TextWriter writer)
         {
+            
+        }
+
+        private void GeneratePrograms(TextWriter writer)
+        {
+            writer.WriteLine("");
+
+            writer.WriteLine("subcall PROGRAM_MAIN");
+            writer.WriteLine("{");
             writer.WriteLine("    IN_32 SUBPROGRAM");
             writer.WriteLine("    DATA32 INDEX");
             writer.WriteLine("    ARRAY8 STACKPOINTER 4");
             writer.WriteLine("    ARRAY32 RETURNSTACK2 128");
             writer.WriteLine("    ARRAY32 RETURNSTACK 128");
             writer.WriteLine("    MOVE8_8 0 STACKPOINTER");
-        }
 
-        private void GenerateMainProgramFinalization(TextWriter writer)
-        {
             writer.WriteLine("    ENDTHREAD:");
             writer.WriteLine("        RETURN");
+            writer.WriteLine("}");
+
+        }
+
+        private void GenerateReferences(TextWriter writer)
+        {
+            library.GenerateCodeForReferences(writer);
         }
 
         private void AddError(SBError error)

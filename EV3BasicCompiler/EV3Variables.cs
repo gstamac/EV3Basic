@@ -1,8 +1,6 @@
-﻿using EV3BasicCompiler;
-using Microsoft.SmallBasic;
+﻿using Microsoft.SmallBasic;
 using Microsoft.SmallBasic.Expressions;
 using Microsoft.SmallBasic.Statements;
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;

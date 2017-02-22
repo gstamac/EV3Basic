@@ -51,6 +51,7 @@
     <Compile Include="Error.cs" />
     <Compile Include="EV3Compiler.cs" />
     <Compile Include="EV3Library.cs" />
+    <Compile Include="EV3SubDefinition.cs" />
     <Compile Include="EV3Variables.cs" />
     <Compile Include="EV3Type.cs" />
     <Compile Include="EV3Variable.cs" />

@@ -14,6 +14,7 @@ namespace Test
     {
         const String SOURCE_FILENAME = "../../../Examples/SensorReading.sb";
         const string TEST_OUTPUT = "../../../_test/";
+        const string TEST_FILES_DIR = "../../../_test";
 
         static void Main(string[] args)
         {
@@ -22,10 +23,11 @@ namespace Test
             //TestCompile();
             //TestAssemble();
             //            TestDisassemble();
+            CompileAll();
 
             try
             {
-                TestParser();
+                TestEV3Compiler();
             }
             catch (Exception ex)
             {
@@ -37,7 +39,15 @@ namespace Test
             Console.ReadKey();
         }
 
-        static void TestParser()
+        private static void CompileAll()
+        {
+            foreach (string fileName in Directory.GetFiles(TEST_FILES_DIR, "*.sb"))
+            {
+                TestCompile(fileName);
+            }
+        }
+
+        static void TestEV3Compiler()
         {
             String lmsFilename = Path.Combine(TEST_OUTPUT, Path.GetFileNameWithoutExtension(SOURCE_FILENAME)) + ".lms2";
 
@@ -70,12 +80,14 @@ namespace Test
             a.Disassemble(fs, Console.Out);
         }
 
-        static void TestCompile()
+        static void TestCompile(string sourceFileName)
         {
             try
             {
-                FileStream fs = new FileStream(SOURCE_FILENAME, FileMode.Open, FileAccess.Read);
-                String lmsFilename = Path.Combine(TEST_OUTPUT, Path.GetFileNameWithoutExtension(SOURCE_FILENAME)) + ".lms";
+                Console.WriteLine("Compiling " + sourceFileName);
+
+                FileStream fs = new FileStream(sourceFileName, FileMode.Open, FileAccess.Read);
+                String lmsFilename = Path.Combine(TEST_OUTPUT, Path.GetFileNameWithoutExtension(sourceFileName)) + ".lms";
                 FileStream ofs = new FileStream(lmsFilename, FileMode.Create, FileAccess.Write);
 
                 List<String> errors = new List<String>();

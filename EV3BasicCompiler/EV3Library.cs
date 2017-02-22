@@ -10,7 +10,7 @@ namespace EV3BasicCompiler
     {
         private readonly Dictionary<string, string> modules;
         private readonly List<string> globals;
-        private readonly List<string> runtimeInit;
+        private string runtimeInit;
         private readonly List<EV3SubDefinition> subs;
         private readonly List<EV3SubDefinition> inlines;
         private int currentLineNo = 0;
@@ -19,7 +19,7 @@ namespace EV3BasicCompiler
         {
             modules = new Dictionary<string, string>();
             globals = new List<string>();
-            runtimeInit = new List<string>();
+            runtimeInit = "";
             subs = new List<EV3SubDefinition>();
             inlines = new List<EV3SubDefinition>();
             Errors = new List<Error>();
@@ -31,7 +31,7 @@ namespace EV3BasicCompiler
         {
             modules.Clear();
             globals.Clear();
-            runtimeInit.Clear();
+            runtimeInit = "";
             subs.Clear();
             inlines.Clear();
         }
@@ -93,9 +93,16 @@ namespace EV3BasicCompiler
 
         public void GenerateCodeForRuntimeInit(TextWriter writer)
         {
-            foreach (string line in runtimeInit)
+            writer.WriteLine(runtimeInit);
+        }
+
+        public void GenerateCodeForReferences(TextWriter writer)
+        {
+            foreach (EV3SubDefinition sub in subs.Where(s => s.Referenced))
             {
-                writer.WriteLine(line);
+                writer.WriteLine();
+                writer.WriteLine(sub.Signature);
+                writer.WriteLine(sub.Code);
             }
         }
 
@@ -118,30 +125,53 @@ namespace EV3BasicCompiler
         private EV3SubDefinition ParseSubDefinition(string line, StringReader reader)
         {
             EV3SubDefinition sub = null;
-            Match match = Regex.Match(line, "(subcall|inline)[ \t]*([^ \t]+)[ \t]*//[ \t]*([SFAX8]*)([SFAX8V])");
+            Match match = Regex.Match(line, "(subcall|inline)[ \t]*([^ \t]+)[ \t]*//[ \t]*([SFAX8]*)([SFAX8V])([ \t]+([^ \t\n\r]+))*", RegexOptions.Singleline);
             if (match.Success)
             {
-                sub = new EV3SubDefinition
-                {
-                    Name = match.Groups[2].Value,
-                    Code = GetBlock(reader)
-                };
+                sub = new EV3SubDefinition(match.Groups[2].Value, line, GetBlock(reader));
+
                 if (match.Groups[1].Value == "subcall")
                 {
                     sub.ParseParameters();
                 }
                 else
                 {
-                    sub.ParameterTypes = ParseParameterTypes(match.Groups[3].Value);
-                    sub.ReturnType = EV3SubDefinition.ParseType(match.Groups[4].Value);
+                    sub.ParseParameterTypes(match.Groups[3].Value);
+                    sub.ParseReturnType(match.Groups[4].Value);
+
+                    //sub.ParseParameters();
+                    //List<EV3Type> parameterTypes = ParseParameterTypes(match.Groups[3].Value);
+                    //EV3Type returnType = EV3SubDefinition.ParseType(match.Groups[4].Value);
+                    //if (sub.ReturnType != returnType)
+                    //    AddError($"Return types do not match for sub ({line}) " + returnType);
+                    //if (parameterTypes.Count != sub.ParameterTypes.Count || !parameterTypes.Select((pt, i) => pt == sub.ParameterTypes[i]).All(t => t))
+                    //    AddError($"Parameter types do not match for sub ({line}) {string.Join(", ", parameterTypes)}");
                 }
+                sub.ParseReferences();
+
+                //List<string> references = new List<string>();
+                //if (match.Groups[6].Captures.Count > 0)
+                //    references = match.Groups[6].Captures.OfType<Capture>().Select(c => c.Value).ToList();
+                //if (sub.References.Count != references.Count || (references.Count > 0 && !references.All(r =>
+                //{
+                //    if (sub.References.Contains(r))
+                //    return true;
+                //    AddError($"    REF {r} MISSING");
+                //    return false;
+                //})))
+                //{
+
+                //    AddError($"References missing for sub ({line}) {sub.References.Count}'{string.Join(",", sub.References)}' != {references.Count}'{string.Join(",", references)}'");
+                //    for (int j = 0; j < match.Groups[6].Captures.Count; j++)
+                //    {
+                //        AddError($"    CAPTURE {j} {match.Groups[6].Captures[j].Value}");
+                //    }
+                //}
+
                 if (sub.ParameterTypes.Any(p => p == EV3Type.Unknown) || sub.ReturnType == EV3Type.Unknown)
                     AddError($"Unknow parameter type for sub ({line})");
-                //else if (sub.ReturnType != sub.ReturnType2)
-                //    AddError($"Return types do not match for sub ({line}) " + sub.ReturnType2);
-                //else if (sub.ParameterTypes2.Count != sub.ParameterTypes.Count || !sub.ParameterTypes2.Select((pt, i) => pt == sub.ParameterTypes[i]).All(t => t))
-                //    AddError($"Parameter types do not match for sub ({line}) {string.Join(", ", sub.ParameterTypes2)}");
-                return sub;
+                else
+                    return sub;
             }
             else
                 AddError($"Unknow sub definition ({line})");
@@ -149,35 +179,31 @@ namespace EV3BasicCompiler
             return null;
         }
 
-        private List<EV3Type> ParseParameterTypes(string value)
-        {
-            return value.Select(c => EV3SubDefinition.ParseType(c.ToString())).ToList();
-        }
-
         private void LoadInit(string line, StringReader reader)
         {
-            List<string> block = GetBlock(reader);
-            runtimeInit.AddRange(block.Skip(1).Take(block.Count - 2));
+            runtimeInit += GetBlock(reader, true);
         }
 
-        private List<string> GetBlock(StringReader reader)
+        private string GetBlock(StringReader reader, bool skipCurlies = false)
         {
-            List<string> block = new List<string>();
+            StringWriter block = new StringWriter();
             String line;
             while ((line = ReadLine(reader)) != null)
             {
-                block.Add(line);
-                if (CleanupLine(line).Equals("}"))
-                    return block;
+                bool isFinalCurly = CleanupLine(line).Equals("}");
+                if (!skipCurlies || (!CleanupLine(line).Equals("{") && !isFinalCurly))
+                    block.WriteLine(line);
+                if (isFinalCurly)
+                    return block.ToString();
             }
 
-            return block;
+            return "";
         }
 
         private string ReadLine(StringReader reader)
         {
             currentLineNo++;
-            return reader.ReadLine();
+            return reader.ReadLine()?.Replace("\t", "    ");
         }
 
         private static string CleanupLine(string line)
@@ -191,93 +217,5 @@ namespace EV3BasicCompiler
             Errors.Add(new Error(message, currentLineNo, 0));
         }
 
-        class EV3SubDefinition
-        {
-            public string Name { get; set; }
-            public List<EV3Type> ParameterTypes { get; set; }
-            public EV3Type ReturnType { get; set; }
-            public List<string> Code { get; set; }
-
-            public void ParseParameters()
-            {
-                ParameterTypes = new List<EV3Type>();
-                ReturnType = EV3Type.Void;
-
-                Dictionary<string, EV3Type> parameters = new Dictionary<string, EV3Type>();
-
-                string codeString = string.Join("\n", Code);
-
-                MatchCollection matches = Regex.Matches(codeString, "IN_([^ \t]+)[ \t]+([^ \t\n\r]+)[ \t\n\r/]", RegexOptions.Singleline);
-                foreach (Match match in matches)
-                {
-                    parameters.Add(match.Groups[2].Value, ParseType(match.Groups[1].Value));
-                }
-
-                matches = Regex.Matches(codeString, "OUT_([^ \t]+)[ \t]+", RegexOptions.Singleline);
-                if (matches.Count == 1)
-                {
-                    ReturnType = ParseType(matches[0].Groups[1].Value);
-                }
-                else
-                {
-                    if (parameters.Count > 0 && parameters.Values.Last() == EV3Type.Int16 
-                        && Regex.IsMatch(codeString, "(ARRAY_WRITE|ARRAY FILL|(ARRAY WRITE_CONTENT[ \t]+[^ \t]+)|(ARRAY COPY[ \t]+[^ \t]+))[ \t]+" + parameters.Keys.Last() + "[ \t\n\r/]+", RegexOptions.Singleline))
-                    {
-                        ReturnType = EV3Type.FloatArray;
-                        parameters.Remove(parameters.Keys.Last());
-                    }
-                }
-                foreach (string name in parameters.Where(kv => kv.Value == EV3Type.Int16).Select(kv => kv.Key).ToArray())
-                {
-                    if (Regex.IsMatch(codeString, "(ARRAY_READ|ARRAY COPY)[ \t]+" + name + "[ \t]+", RegexOptions.Singleline))
-                    {
-                        parameters[name] = EV3Type.FloatArray;
-                    }
-                }
-
-                ParameterTypes = parameters.Values.Select(pt => NormalizeType(pt)).ToList();
-                ReturnType = NormalizeType(ReturnType);
-            }
-
-            public static EV3Type ParseType(string typeString)
-            {
-                switch (typeString)
-                {
-                    case "8":
-                        return EV3Type.Int8;
-                    case "16":
-                        return EV3Type.Int16;
-                    case "32":
-                        return EV3Type.Int32;
-                    case "F":
-                        return EV3Type.Float;
-                    case "S":
-                        return EV3Type.String;
-                    case "A":
-                        return EV3Type.FloatArray;
-                    case "X":
-                        return EV3Type.StringArray;
-                    case "V":
-                        return EV3Type.Void;
-                }
-                return EV3Type.Unknown;
-            }
-
-            private EV3Type NormalizeType(EV3Type pt)
-            {
-                switch (pt)
-                {
-                    case EV3Type.Int8:
-                    case EV3Type.Int16:
-                    case EV3Type.Int32:
-                        return EV3Type.Float;
-                    case EV3Type.Int8Array:
-                    case EV3Type.Int16Array:
-                    case EV3Type.Int32Array:
-                        return EV3Type.FloatArray;
-                }
-                return pt;
-            }
-        }
     }
 }
