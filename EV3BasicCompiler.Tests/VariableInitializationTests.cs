@@ -11,7 +11,7 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldInitializeFloat()
         {
-            TestIt(@"
+            TestInitialization(@"
                 i = 10.0
             ", @"
                 MOVEF_F 0.0 VI
@@ -21,7 +21,7 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldInitializeString()
         {
-            TestIt(@"
+            TestInitialization(@"
                 i = ""XX""
             ", @"
                 STRINGS DUPLICATE '' VI
@@ -31,7 +31,7 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldInitializeFloatArray()
         {
-            TestIt(@"
+            TestInitialization(@"
                 i[2] = 10.1
             ", @"
                 CALL ARRAYCREATE_FLOAT VI
@@ -41,22 +41,26 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldInitializeStringArray()
         {
-            TestIt(@"
+            TestInitialization(@"
                 i[2] = ""XX""
             ", @"
                 CALL ARRAYCREATE_STRING VI
             ");
         }
 
-        protected override string CleanupCompiledCode(string ev3Code)
+        [TestMethod]
+        public void ShouldInitializeStringArray_WhenUsingCondensedForma()
         {
-            Match match = Regex.Match(ev3Code, "vmthread MAIN[^{]*{([^}]*)}", RegexOptions.Singleline);
-            if (match.Success)
-                ev3Code = match.Groups[1].ToString();
-            match = Regex.Match(ev3Code, "ARRAY CREATE8 0 LOCKS([^}]*)ARRAY CREATE8 1 LOCKS", RegexOptions.Singleline);
-            if (match.Success)
-                ev3Code = match.Groups[1].ToString();
-            return ev3Code;
+            TestInitialization(@"
+                i = ""1=1;2=2;3=3""
+            ", @"
+                CALL ARRAYCREATE_STRING VI
+            ");
+            TestInitialization(@"
+                i = ""1=1;2=2;3=3;""
+            ", @"
+                CALL ARRAYCREATE_STRING VI
+            ");
         }
     }
 }

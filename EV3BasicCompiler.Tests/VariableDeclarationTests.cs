@@ -15,7 +15,7 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldDeclareInt()
         {
-            TestIt(@"
+            TestDeclaration(@"
                 i = 10
             ", @"
                 DATAF VI
@@ -25,7 +25,7 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldDeclareInt_WhenValueIsNegative()
         {
-            TestIt(@"
+            TestDeclaration(@"
                 i = -10
             ", @"
                 DATAF VI
@@ -35,7 +35,7 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldDeclareFloat()
         {
-            TestIt(@"
+            TestDeclaration(@"
                 i = 10.3
             ", @"
                 DATAF VI
@@ -45,7 +45,7 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldDeclareFloat_WhenValueIsNegative()
         {
-            TestIt(@"
+            TestDeclaration(@"
                 i = -10.3
             ", @"
                 DATAF VI
@@ -55,7 +55,7 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldDeclareString()
         {
-            TestIt(@"
+            TestDeclaration(@"
                 i = ""X""
             ", @"
                 DATAS VI 252
@@ -65,7 +65,7 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldDeclareIntArray()
         {
-            TestIt(@"
+            TestDeclaration(@"
                 i[6] = 2
             ", @"
                 ARRAY16 VI 6
@@ -75,7 +75,7 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldDeclareFloatArray()
         {
-            TestIt(@"
+            TestDeclaration(@"
                 i[6] = 2.3
             ", @"
                 ARRAY16 VI 6
@@ -83,9 +83,31 @@ namespace EV3BasicCompiler.Tests
         }
 
         [TestMethod]
+        public void ShouldDeclareFloatArray_WithFormulaIndexer()
+        {
+            TestDeclaration(@"
+                i[2 + 4] = 2
+            ", @"
+                ARRAY16 VI 6
+            ");
+        }
+
+        [TestMethod]
+        public void ShouldDeclareFloatArray_WithReferenceFormulaIndexer()
+        {
+            TestDeclaration(@"
+                j = 3
+                i[j + 4] = 2
+            ", @"
+                DATAF VJ
+                ARRAY16 VI 2
+            ");
+        }
+
+        [TestMethod]
         public void ShouldDeclareStringArray()
         {
-            TestIt(@"
+            TestDeclaration(@"
                 i[7] = ""X""
             ", @"
                 ARRAY16 VI 7
@@ -95,8 +117,13 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldDeclareStringArray_WhenUsingCondensedFormat()
         {
-            TestIt(@"
+            TestDeclaration(@"
                 i = ""1=1;2=2;3=3""
+            ", @"
+                ARRAY16 VI 3
+            ");
+            TestDeclaration(@"
+                i = ""1=1;2=2;3=3;""
             ", @"
                 ARRAY16 VI 3
             ");
@@ -105,7 +132,7 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldDeclareArrayWithMaxIndex()
         {
-            TestIt(@"
+            TestDeclaration(@"
                 i[2] = 2
                 i[6] = 2
                 i[3] = 2
@@ -117,7 +144,7 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldDeclareArrayWithMaxIndex_WhenReferenced()
         {
-            TestIt(@"
+            TestDeclaration(@"
                 i[2] = 2
                 j = i[12]
             ", @"
@@ -129,7 +156,7 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldDeclareArrayWithMaxIndex_WhenReferencedInFormula()
         {
-            TestIt(@"
+            TestDeclaration(@"
                 i[2] = 2
                 j = i[3] + i[12]
             ", @"
@@ -161,7 +188,7 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldDeclareFloat_WhenDeclaredWithFormula()
         {
-            TestIt(@"
+            TestDeclaration(@"
                 i = 10.3 + 10
             ", @"
                 DATAF VI
@@ -171,7 +198,7 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldDeclareString_WhenDeclaredWithFormula()
         {
-            TestIt(@"
+            TestDeclaration(@"
                 i = ""X"" + ""Y""
             ", @"
                 DATAS VI 252
@@ -181,7 +208,7 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldDeclareString_WhenDeclaredWithMixedFormula()
         {
-            TestIt(@"
+            TestDeclaration(@"
                 i = ""X"" + 10
                 j = 10 + ""X""
             ", @"
@@ -193,7 +220,7 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldDeclareFloat_WhenDeclaredWithReference()
         {
-            TestIt(@"
+            TestDeclaration(@"
                 i = 10.3
                 j = i
             ", @"
@@ -203,9 +230,21 @@ namespace EV3BasicCompiler.Tests
         }
 
         [TestMethod]
+        public void ShouldDeclareFloat_WhenDeclaredWithNegativeReference()
+        {
+            TestDeclaration(@"
+                i = 10.3
+                j = -i
+            ", @"
+                DATAF VI
+                DATAF VJ
+            ");
+        }
+
+        [TestMethod]
         public void ShouldDeclareFloat_WhenDeclaredWithIndexedReference()
         {
-            TestIt(@"
+            TestDeclaration(@"
                 i[2] = 10.3
                 j = i[2]
             ", @"
@@ -217,7 +256,7 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldDeclareFloat_WhenDeclaredWithReferenceFormula()
         {
-            TestIt(@"
+            TestDeclaration(@"
                 i = 10.3
                 j = i + i
             ", @"
@@ -229,7 +268,7 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldDeclareFloat_WhenDeclaredWithIndexedReferenceFormula()
         {
-            TestIt(@"
+            TestDeclaration(@"
                 i[2] = 10.3
                 j = i[1] + i[2]
             ", @"
@@ -241,7 +280,7 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldDeclareString_WhenDeclaredWithReference()
         {
-            TestIt(@"
+            TestDeclaration(@"
                 i = ""X""
                 j = i
             ", @"
@@ -253,7 +292,7 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldDeclareString_WhenDeclaredWithIndexedReference()
         {
-            TestIt(@"
+            TestDeclaration(@"
                 i[2] = ""X""
                 j = i[1]
             ", @"
@@ -265,7 +304,7 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldDeclareString_WhenDeclaredWithReferenceFormula()
         {
-            TestIt(@"
+            TestDeclaration(@"
                 i = ""X""
                 j = i + i
             ", @"
@@ -277,7 +316,7 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldDeclareString_WhenDeclaredWithIndexedReferenceFormula()
         {
-            TestIt(@"
+            TestDeclaration(@"
                 i[23] = ""X""
                 j = i[1] + i[2]
             ", @"
@@ -289,7 +328,7 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldDeclareString_WhenDeclaredWithMixedReferenceFormula()
         {
-            TestIt(@"
+            TestDeclaration(@"
                 i = ""X""
                 j = 10
                 k = i + j
@@ -305,7 +344,7 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldDeclareFloatArray_WhenDeclaredWithReference()
         {
-            TestIt(@"
+            TestDeclaration(@"
                 i[3] = 10.3
                 j = i
             ", @"
@@ -317,7 +356,7 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldDeclareStringArray_WhenDeclaredWithReference()
         {
-            TestIt(@"
+            TestDeclaration(@"
                 i[4] = ""X""
                 j = i
             ", @"
@@ -327,9 +366,18 @@ namespace EV3BasicCompiler.Tests
         }
 
         [TestMethod]
+        public void ShouldFail_WhenAssigningStringArrayWithFormula()
+        {
+            TestParseFailure(@"
+                i[4] = ""X""
+                j = i + i
+            ", "Operations on arrays are not permited", 3, 21);
+        }
+
+        [TestMethod]
         public void ShouldDeclareInt_WhenUsedInForLoop()
         {
-            TestIt(@"
+            TestDeclaration(@"
                 For i = 10 To 24
                 EndFor
             ", @"
@@ -340,7 +388,7 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldDeclareInt_WhenUsedInForLoopWithStep()
         {
-            TestIt(@"
+            TestDeclaration(@"
                 For i = 10 To 24 Step 2
                 EndFor
             ", @"
@@ -360,7 +408,7 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldDeclareInt_WhenReferencingExternalFunction()
         {
-            TestIt(@"
+            TestDeclaration(@"
                 raw = Sensor.ReadRaw(sensorId, 8)
             ", @"
                 ARRAY16 VRAW 2
@@ -370,7 +418,7 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldDeclareInt_WhenReferencingExternalInlineFunction()
         {
-            TestIt(@"
+            TestDeclaration(@"
                 i = Mailbox.Receive(8)
             ", @"
                 DATAS VI 252
@@ -380,22 +428,11 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldDeclareInt_WhenReferencingExternalProperty()
         {
-            TestIt(@"
+            TestDeclaration(@"
                 i = Buttons.Current
             ", @"
                 DATAS VI 252
             ");
-        }
-
-        protected override string CleanupCompiledCode(string ev3Code)
-        {
-            Match match = Regex.Match(ev3Code, "(.*)vmthread MAIN.*", RegexOptions.Singleline);
-            if (match.Success)
-                ev3Code = match.Groups[1].ToString();
-            match = Regex.Match(ev3Code, ".*ARRAY16 LOCKS 2(.*)", RegexOptions.Singleline);
-            if (match.Success)
-                ev3Code = match.Groups[1].ToString();
-            return ev3Code;
         }
     }
 }

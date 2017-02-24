@@ -47,8 +47,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Compilers\ArrayExpressionCompiler.cs" />
+    <Compile Include="Compilers\BinaryExpressionCompiler.cs" />
     <Compile Include="Compiler.cs" />
+    <Compile Include="Compilers\AssignmentStatementCompiler.cs" />
+    <Compile Include="Compilers\EV3CompilerContext.cs" />
+    <Compile Include="Compilers\ExpressionCompiler.cs" />
+    <Compile Include="Compilers\IExpressionCompiler.cs" />
+    <Compile Include="Compilers\IStatementCompiler.cs" />
     <Compile Include="Error.cs" />
+    <Compile Include="EV3MainProgram.cs" />
     <Compile Include="EV3Compiler.cs" />
     <Compile Include="EV3Library.cs" />
     <Compile Include="EV3SubDefinition.cs" />
@@ -56,7 +64,13 @@
     <Compile Include="EV3Type.cs" />
     <Compile Include="EV3Variable.cs" />
     <Compile Include="Expression.cs" />
+    <Compile Include="Compilers\IdentifierExpressionCompiler.cs" />
+    <Compile Include="IEV3Variable.cs" />
     <Compile Include="LibraryEntry.cs" />
+    <Compile Include="Compilers\LiteralExpressionCompiler.cs" />
+    <Compile Include="Compilers\MethodCallExpressionCompiler.cs" />
+    <Compile Include="Compilers\NegativeExpressionCompiler.cs" />
+    <Compile Include="Compilers\PropertyExpressionCompiler.cs" />
     <Compile Include="SmallBasicParserExtensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Resources.Designer.cs">

@@ -8,45 +8,81 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using EV3BasicCompiler;
 using EV3BasicCompiler.Properties;
+using System.Text;
+using EV3BasicCompiler.Compilers;
 
 namespace EV3BasicCompiler
 {
-    public class EV3Compiler
+    public class EV3Compiler : IDisposable
     {
         private readonly Parser parser;
+        private EV3CompilerContext context;
         private readonly List<SBError> SBErrors;
-        private readonly EV3Variables variables;
         private readonly EV3Library library;
-
-        public List<Error> Errors { get; private set; }
+        private readonly EV3Variables variables;
+        private readonly EV3MainProgram mainProgram;
 
         public EV3Compiler()
         {
-            Errors = new List<Error>();
-
             SBErrors = new List<SBError>();
             parser = new Parser(SBErrors);
-            variables = new EV3Variables(parser);
             library = new EV3Library();
+            variables = new EV3Variables(parser);
+            mainProgram = new EV3MainProgram(parser, variables);
+            context = new EV3CompilerContext(variables, library);
         }
+
+        public List<Error> Errors { get { return context.Errors; } }
 
         public void Parse(TextReader reader)
         {
+            Clear();
             parser.Parse(reader);
+            parser.AttachCompilers(context);
             foreach (SBError error in SBErrors) AddError(error);
-            if (Errors.Count == 0)
+            if (context.Errors.Count == 0)
             {
                 LoadLibrary();
+                ProcessPragmas();
                 ProcessVariables();
                 ProcessCode();
             }
         }
 
+        private void Clear()
+        {
+            if (parser != null)
+                parser.RemoveCompilers();
+            SBErrors.Clear();
+            library.Clear();
+            variables.Clear();
+            mainProgram.Clear();
+        }
+
+        private void ProcessPragmas()
+        {
+            foreach (EmptyStatement statement in parser.GetStatements<EmptyStatement>().Where(s => s.EndingComment.TokenType == TokenType.Comment))
+            {
+                if (statement.EndingComment.Text.StartsWith("'PRAGMA"))
+                {
+                    string setting = statement.EndingComment.Text.Substring(7).Trim();
+                    if (setting.Equals("NOBOUNDSCHECK"))
+                        variables.DoBoundsCheck = false;
+                    else if (setting.Equals("BOUNDSCHECK"))
+                        variables.DoBoundsCheck = true;
+                    else if (setting.Equals("NODIVISIONCHECK"))
+                        variables.DoDivisionCheck = false;
+                    else if (setting.Equals("DIVISIONCHECK"))
+                        variables.DoDivisionCheck = true;
+                    else
+                        AddError("Unknown PRAGMA: " + setting, statement.StartToken);
+                }
+            }
+        }
+
         private void LoadLibrary()
         {
-            library.Clear();
             library.LoadModule(Resources.runtimelibrary);
             library.LoadModule(Resources.Assert);
             library.LoadModule(Resources.Buttons);
@@ -62,17 +98,19 @@ namespace EV3BasicCompiler
             library.LoadModule(Resources.Text);
             library.LoadModule(Resources.Thread);
             library.LoadModule(Resources.Vector);
-            Errors.AddRange(library.Errors);
+            context.Errors.AddRange(library.Errors);
         }
 
         private void ProcessVariables()
         {
             variables.Process(library.GetSubResultTypes());
-            Errors.AddRange(variables.Errors);
+            context.Errors.AddRange(variables.Errors);
         }
 
         private void ProcessCode()
         {
+            mainProgram.Process();
+            context.Errors.AddRange(mainProgram.Errors);
         }
 
         public void GenerateEV3Code(TextWriter writer)
@@ -82,13 +120,17 @@ namespace EV3BasicCompiler
             GenerateThreads(writer);
             GeneratePrograms(writer);
             GenerateReferences(writer);
+
+            context.Errors.AddRange(variables.CompileErrors);
+            context.Errors.AddRange(mainProgram.CompileErrors);
+            context.Errors.AddRange(library.CompileErrors);
         }
 
         private void GenerateInitialization(TextWriter writer)
         {
-            library.GenerateCodeForGlobals(writer);
-            variables.GenerateCodeForVariableDeclarations(writer);
-            // Write thread ids
+            library.CompileCodeForGlobals(writer);
+            variables.CompileCodeForVariableDeclarations(writer);
+            mainProgram.CompileCodeForRunCounterStorageDeclarations(writer);
         }
 
         private void GenerateMainThread(TextWriter writer)
@@ -97,52 +139,76 @@ namespace EV3BasicCompiler
 
             writer.WriteLine("vmthread MAIN");
             writer.WriteLine("{");
-            library.GenerateCodeForRuntimeInit(writer);
-            variables.GenerateCodeForVariableInitializations(writer);
+            library.CompileCodeForRuntimeInit(writer);
+            variables.CompileCodeForVariableInitializations(writer);
+            mainProgram.CompileCodeForRunCounterStorageInitialization(writer);
             writer.WriteLine("    ARRAY CREATE8 1 LOCKS");
-            // Write EV3.NATIVECODE if needed
-            writer.WriteLine("    CALL PROGRAM_MAIN -1");
+            // copy native code to brick if needed
+            writer.WriteLine("    CALL PROGRAM_MAIN -1");       // launch main program
             writer.WriteLine("    PROGRAM_STOP -1");
             writer.WriteLine("}");
         }
 
         private void GenerateThreads(TextWriter writer)
         {
-            
+            mainProgram.CompileCodeForThreads(writer);
         }
 
         private void GeneratePrograms(TextWriter writer)
         {
+            // create the code for the basic program (will be called from various threads)
+            // multiple VM subcall objects will be created that share the same implementation, but
+            // have a seperate local storage
+
             writer.WriteLine("");
 
             writer.WriteLine("subcall PROGRAM_MAIN");
+            mainProgram.CompileCodeForThreadPrograms(writer);
             writer.WriteLine("{");
+            // the call parameter that decides, which subroutine to start
             writer.WriteLine("    IN_32 SUBPROGRAM");
+            // storage for variables for compiler use
             writer.WriteLine("    DATA32 INDEX");
-            writer.WriteLine("    ARRAY8 STACKPOINTER 4");
-            writer.WriteLine("    ARRAY32 RETURNSTACK2 128");
-            writer.WriteLine("    ARRAY32 RETURNSTACK 128");
+            writer.WriteLine("    ARRAY8 STACKPOINTER 4");  // waste 4 bytes, but keep alignment
+            //// storage for temporary float variables
+            //for (int i = 0; maxreservedtemporaries.ContainsKey(ExpressionType.Number) && i < maxreservedtemporaries[ExpressionType.Number]; i++)
+            //{
+            //    writer.WriteLine("    DATAF F" + i);
+            //}
+            // storage for the return stack
+            writer.WriteLine("    ARRAY32 RETURNSTACK2 128");   // addressing the stack is done with an 8bit int.
+            writer.WriteLine("    ARRAY32 RETURNSTACK 128");    // when it wrapps over from 127 to -128, the second 
+            writer.WriteLine();                                 // part of the stack will be used (256 entries total)
+            //// storage for temporary string variables
+            //for (int i = 0; maxreservedtemporaries.ContainsKey(ExpressionType.Text) && i < maxreservedtemporaries[ExpressionType.Text]; i++)
+            //{
+            //    writer.WriteLine("    DATAS S" + i + " 252");
+            //}
+
+            // initialize the stack pointer
             writer.WriteLine("    MOVE8_8 0 STACKPOINTER");
 
-            writer.WriteLine("    ENDTHREAD:");
-            writer.WriteLine("        RETURN");
-            writer.WriteLine("}");
+            mainProgram.CompileCodeForMainProgram(writer);
 
+            writer.WriteLine("ENDTHREAD:");
+            writer.WriteLine("    RETURN");
+            mainProgram.CompileCodeForSubroutines(writer);
+            writer.WriteLine("}");
         }
 
         private void GenerateReferences(TextWriter writer)
         {
-            library.GenerateCodeForReferences(writer);
+            library.CompileCodeForReferences(writer);
         }
 
         private void AddError(SBError error)
         {
-            Errors.Add(new Error(error.Description, error.Line + 1, error.Column + 1));
+            context.AddError(error.Description, error.Line + 1, error.Column + 1);
         }
 
         private void AddError(string message, TokenInfo tokenInfo)
         {
-            Errors.Add(new Error(message, tokenInfo.Line + 1, tokenInfo.Column + 1));
+            context.AddError(message, tokenInfo);
         }
 
         [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage()]
@@ -150,63 +216,18 @@ namespace EV3BasicCompiler
         {
             StringWriter s = new StringWriter();
 
-            s.WriteLine("VARIABLES:");
-            foreach (var item in parser.SymbolTable.Variables)
-                s.WriteLine(item.Key + " = " + item.Value);
-            s.WriteLine("INITIALIZED VARIABLES:");
-            foreach (var item in parser.SymbolTable.InitializedVariables)
-                s.WriteLine($"{item.Key} = {item.Value}");
-            s.WriteLine("SUBROUTINES:");
-            foreach (var item in parser.SymbolTable.Subroutines)
-                s.WriteLine($"{item.Key} = {item.Value}");
-            s.WriteLine("LABELS:");
-            foreach (var item in parser.SymbolTable.Labels)
-                s.WriteLine($"{item.Key} = {item.Value}");
-            s.WriteLine("ERRORS:");
-            foreach (var item in parser.SymbolTable.Errors)
-                s.WriteLine($"{item.Line}:{item.Column}: {item.Description}");
+            s.WriteLine("COMPILER ERRORS:");
+            foreach (var item in context.Errors)
+                s.WriteLine($"{item.Line}:{item.Column}: {item.Message}");
 
-            s.WriteLine("TREE:");
-            foreach (Statement statement in parser.ParseTree)
-            {
-                s.WriteLine($"{statement.GetType().Name}:{statement}");
-                if (statement is AssignmentStatement)
-                {
-                    var leftValue = ((AssignmentStatement)statement).LeftValue;
-                    var rightValue = ((AssignmentStatement)statement).RightValue;
-                    s.WriteLine($"-----> LEFT: {leftValue.GetType().Name}:{leftValue.ToString()}");
-                    if (leftValue is ArrayExpression)
-                    {
-                        ArrayExpression arrayExpression = (ArrayExpression)leftValue;
-                        s.WriteLine("----->   ARRAY LeftHand: (" + arrayExpression.LeftHand.GetType() + ") " + arrayExpression.LeftHand);
-                        s.WriteLine("----->   ARRAY Indexer: (" + arrayExpression.Indexer.GetType() + ") " + arrayExpression.Indexer);
-                    }
-                    if (rightValue is MethodCallExpression)
-                    {
-                        MethodCallExpression methodCallExpression = (MethodCallExpression)rightValue;
-                        s.WriteLine("----->   SUBCALL MethodName: " + methodCallExpression.MethodName);
-                        s.WriteLine("----->   SUBCALL TypeName: " + methodCallExpression.TypeName);
-                        s.WriteLine("----->   SUBCALL Arguments: " + methodCallExpression.Arguments);
-                    }
-                    else if (rightValue is PropertyExpression)
-                    {
-                        PropertyExpression propertyExpression = (PropertyExpression)rightValue;
-                        s.WriteLine("----->   SUBCALL PropertyName: " + propertyExpression.PropertyName);
-                        s.WriteLine("----->   SUBCALL TypeName: " + propertyExpression.TypeName);
-                    }
-                    s.WriteLine($"-----> RIGHT: {rightValue.GetType().Name}:{rightValue.ToString()}");
-                }
-                else if (statement is ForStatement)
-                {
-                    s.WriteLine($"-----> Iterator: {((ForStatement)statement).Iterator}");
-                }
-                else if (statement is SubroutineStatement)
-                {
-                    s.WriteLine($"-----> SubroutineName: {((SubroutineStatement)statement).SubroutineName}");
-                }
-            }
+            s.WriteLine(parser.Dump());
 
             return s.ToString();
+        }
+
+        public void Dispose()
+        {
+            Clear();
         }
     }
 }

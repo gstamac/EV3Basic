@@ -51,10 +51,10 @@ namespace Test
         {
             String lmsFilename = Path.Combine(TEST_OUTPUT, Path.GetFileNameWithoutExtension(SOURCE_FILENAME)) + ".lms2";
 
+            using (EV3Compiler compiler = new EV3Compiler())
             using (StreamReader reader = new StreamReader(SOURCE_FILENAME))
             using (StreamWriter writer = new StreamWriter(lmsFilename))
             {
-                EV3Compiler compiler = new EV3Compiler();
                 compiler.Parse(reader);
 
                 compiler.Errors.ForEach(e => Console.WriteLine($"ERROR: {e}"));

@@ -28,6 +28,17 @@ namespace EV3BasicCompiler
             return (int)type >= (int)EV3Type.Int8Array;
         }
 
+        public static bool IsNumber(this EV3Type type)
+        {
+            int typeId = (int)type;
+            return (int)EV3Type.Int8 <= typeId && typeId <= (int)EV3Type.Float;
+        }
+
+        public static bool IsArrayOf(this EV3Type type, EV3Type baseType)
+        {
+            return type.IsArray() && type.BaseType() == baseType;
+        }
+
         public static EV3Type BaseType(this EV3Type type)
         {
             if (type.IsArray())

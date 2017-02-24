@@ -179,7 +179,7 @@ namespace EV3BasicCompiler.Tests
 
         private string Compile(string fileName, bool withDump)
         {
-            EV3Compiler compiler = new EV3Compiler();
+            using (EV3Compiler compiler = new EV3Compiler())
             using (StreamReader stringReader = new StreamReader(fileName))
             using (StringWriter writer = new StringWriter())
             {

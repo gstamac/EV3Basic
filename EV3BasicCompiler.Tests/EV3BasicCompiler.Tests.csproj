@@ -44,6 +44,10 @@
       <HintPath>..\packages\FluentAssertions.4.19.0\lib\net45\FluentAssertions.Core.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="SmallBasicCompiler, Version=1.2.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\Program Files (x86)\Microsoft\Small Basic\SmallBasicCompiler.exe</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Xml.Linq" />
@@ -63,6 +67,11 @@
   <ItemGroup>
     <Compile Include="EV3CompilerTestsBase.cs" />
     <Compile Include="LibraryTests.cs" />
+    <Compile Include="LoopsTests.cs" />
+    <Compile Include="MainProgramTests.cs" />
+    <Compile Include="SubroutinesTests.cs" />
+    <Compile Include="ThreadTests.cs" />
+    <Compile Include="VariableAssignmentTests.cs" />
     <Compile Include="VariableDeclarationTests.cs" />
     <Compile Include="VariableInitializationTests.cs" />
     <Compile Include="IntegrationTests.cs" />

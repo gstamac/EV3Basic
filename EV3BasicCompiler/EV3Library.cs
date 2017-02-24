@@ -11,29 +11,33 @@ namespace EV3BasicCompiler
         private readonly Dictionary<string, string> modules;
         private readonly List<string> globals;
         private string runtimeInit;
-        private readonly List<EV3SubDefinition> subs;
+        private readonly List<EV3SubDefinition> subroutines;
         private readonly List<EV3SubDefinition> inlines;
         private int currentLineNo = 0;
+
+        public List<Error> Errors { get; private set; }
+        public List<Error> CompileErrors { get; private set; }
 
         public EV3Library()
         {
             modules = new Dictionary<string, string>();
             globals = new List<string>();
             runtimeInit = "";
-            subs = new List<EV3SubDefinition>();
+            subroutines = new List<EV3SubDefinition>();
             inlines = new List<EV3SubDefinition>();
             Errors = new List<Error>();
+            CompileErrors = new List<Error>();
         }
-
-        public List<Error> Errors { get; private set; }
 
         public void Clear()
         {
             modules.Clear();
             globals.Clear();
             runtimeInit = "";
-            subs.Clear();
+            subroutines.Clear();
             inlines.Clear();
+            Errors.Clear();
+            CompileErrors.Clear();
         }
 
         public void LoadModule(string moduleSource)
@@ -65,11 +69,16 @@ namespace EV3BasicCompiler
             }
         }
 
+        public EV3SubDefinition FindSubroutine(string subroutineName)
+        {
+            return subroutines.Concat(inlines).FirstOrDefault(s => s.Name.Equals(subroutineName, StringComparison.InvariantCultureIgnoreCase));
+        }
+
         public Dictionary<string, EV3Type> GetSubResultTypes()
         {
             Dictionary<string, EV3Type> types = new Dictionary<string, EV3Type>();
 
-            foreach (EV3SubDefinition sub in subs)
+            foreach (EV3SubDefinition sub in subroutines)
             {
                 if (!types.ContainsKey(sub.Name))
                     types.Add(sub.Name, sub.ReturnType);
@@ -83,7 +92,7 @@ namespace EV3BasicCompiler
             return types;
         }
 
-        public void GenerateCodeForGlobals(TextWriter writer)
+        public void CompileCodeForGlobals(TextWriter writer)
         {
             foreach (string line in globals)
             {
@@ -91,17 +100,16 @@ namespace EV3BasicCompiler
             }
         }
 
-        public void GenerateCodeForRuntimeInit(TextWriter writer)
+        public void CompileCodeForRuntimeInit(TextWriter writer)
         {
             writer.WriteLine(runtimeInit);
         }
 
-        public void GenerateCodeForReferences(TextWriter writer)
+        public void CompileCodeForReferences(TextWriter writer)
         {
-            foreach (EV3SubDefinition sub in subs.Where(s => s.Referenced))
+            foreach (EV3SubDefinition sub in subroutines.Where(s => s.Referenced))
             {
                 writer.WriteLine();
-                writer.WriteLine(sub.Signature);
                 writer.WriteLine(sub.Code);
             }
         }
@@ -111,7 +119,7 @@ namespace EV3BasicCompiler
             EV3SubDefinition sub = ParseSubDefinition(line, reader);
 
             if (sub != null)
-                subs.Add(sub);
+                subroutines.Add(sub);
         }
 
         private void LoadInline(string line, StringReader reader)
@@ -128,13 +136,9 @@ namespace EV3BasicCompiler
             Match match = Regex.Match(line, "(subcall|inline)[ \t]*([^ \t]+)[ \t]*//[ \t]*([SFAX8]*)([SFAX8V])([ \t]+([^ \t\n\r]+))*", RegexOptions.Singleline);
             if (match.Success)
             {
-                sub = new EV3SubDefinition(match.Groups[2].Value, line, GetBlock(reader));
+                sub = new EV3SubDefinition(match.Groups[2].Value, GetBlock(line, reader));
 
-                if (match.Groups[1].Value == "subcall")
-                {
-                    sub.ParseParameters();
-                }
-                else
+                if (match.Groups[1].Value == "inline")
                 {
                     sub.ParseParameterTypes(match.Groups[3].Value);
                     sub.ParseReturnType(match.Groups[4].Value);
@@ -147,7 +151,6 @@ namespace EV3BasicCompiler
                     //if (parameterTypes.Count != sub.ParameterTypes.Count || !parameterTypes.Select((pt, i) => pt == sub.ParameterTypes[i]).All(t => t))
                     //    AddError($"Parameter types do not match for sub ({line}) {string.Join(", ", parameterTypes)}");
                 }
-                sub.ParseReferences();
 
                 //List<string> references = new List<string>();
                 //if (match.Groups[6].Captures.Count > 0)
@@ -181,12 +184,14 @@ namespace EV3BasicCompiler
 
         private void LoadInit(string line, StringReader reader)
         {
-            runtimeInit += GetBlock(reader, true);
+            runtimeInit += GetBlock(line, reader, true);
         }
 
-        private string GetBlock(StringReader reader, bool skipCurlies = false)
+        private string GetBlock(string signature, StringReader reader, bool skipCurlies = false)
         {
             StringWriter block = new StringWriter();
+            if (!skipCurlies)
+                block.WriteLine(signature);
             String line;
             while ((line = ReadLine(reader)) != null)
             {

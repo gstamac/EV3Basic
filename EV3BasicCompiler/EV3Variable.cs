@@ -2,12 +2,17 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.SmallBasic;
+using Microsoft.SmallBasic.Statements;
+using SBExpression = Microsoft.SmallBasic.Expressions.Expression;
+using System.IO;
+using System.Globalization;
+using System.Text.RegularExpressions;
+using Microsoft.SmallBasic.Expressions;
 
 namespace EV3BasicCompiler
 {
-    public class EV3Variable
+    public class EV3Variable : IEV3Variable
     {
-        private string ev3Name = "";
 
         public EV3Variable(string name, TokenInfo tokenInfo)
         {
@@ -23,9 +28,10 @@ namespace EV3BasicCompiler
             private set
             {
                 name = value;
-                ev3Name = $"V{Name.ToUpper()}";
+                Ev3Name = $"V{Name.ToUpper()}";
             }
         }
+        public string Ev3Name { get; set; }
 
         public TokenInfo TokenInfo { get; set; }
         public EV3Type Type { get; set; }
@@ -43,59 +49,117 @@ namespace EV3BasicCompiler
             if (MaxIndex < index)
                 MaxIndex = index;
         }
-        public string GenerateDeclarationCode()
+
+        public void CompileCodeForDeclaration(TextWriter writer)
         {
-            if (Type.IsArray())
-                return $"ARRAY16 {ev3Name} {Math.Max(MaxIndex, 2)}";
-            else
+            switch (Type)
             {
-                switch (Type)
-                {
-                    case EV3Type.Int8:
-                        return $"DATA8 {ev3Name}";
-                    case EV3Type.Int16:
-                        return $"DATA16 {ev3Name}";
-                    case EV3Type.Int32:
-                        return $"DATA32 {ev3Name}";
-                    case EV3Type.Float:
-                        return $"DATAF {ev3Name}";
-                    case EV3Type.String:
-                        return $"DATAS {ev3Name} 252";
-                }
+                case EV3Type.Int8:
+                    writer.WriteLine($"DATA8 {Ev3Name}");
+                    break;
+                case EV3Type.Int16:
+                    writer.WriteLine($"DATA16 {Ev3Name}");
+                    break;
+                case EV3Type.Int32:
+                    writer.WriteLine($"DATA32 {Ev3Name}");
+                    break;
+                case EV3Type.Float:
+                    writer.WriteLine($"DATAF {Ev3Name}");
+                    break;
+                case EV3Type.String:
+                    writer.WriteLine($"DATAS {Ev3Name} 252");
+                    break;
+                case EV3Type.Int8Array:
+                case EV3Type.Int16Array:
+                case EV3Type.Int32Array:
+                case EV3Type.FloatArray:
+                case EV3Type.StringArray:
+                    writer.WriteLine($"ARRAY16 {Ev3Name} {Math.Max(MaxIndex, 2)}");
+                    break;
             }
-            return "";
         }
 
-        public string GenerateInitializationCode()
+        public void CompileCodeForInitialization(TextWriter writer)
         {
+            switch (Type)
+            {
+                case EV3Type.Int8:
+                    writer.WriteLine($"    MOVE8_8 0 {Ev3Name}");
+                    break;
+                case EV3Type.Int16:
+                    writer.WriteLine($"    MOVE16_16 0 {Ev3Name}");
+                    break;
+                case EV3Type.Int32:
+                    writer.WriteLine($"    MOVE32_32 0 {Ev3Name}");
+                    break;
+                case EV3Type.Float:
+                    writer.WriteLine($"    MOVEF_F 0.0 {Ev3Name}");
+                    break;
+                case EV3Type.String:
+                    writer.WriteLine($"    STRINGS DUPLICATE '' {Ev3Name}");
+                    break;
+                case EV3Type.Int8Array:
+                case EV3Type.Int16Array:
+                case EV3Type.Int32Array:
+                case EV3Type.FloatArray:
+                    writer.WriteLine($"    CALL ARRAYCREATE_FLOAT {Ev3Name}");
+                    break;
+                case EV3Type.StringArray:
+                    writer.WriteLine($"    CALL ARRAYCREATE_STRING {Ev3Name}");
+                    break;
+            }
+        }
+
+        public void CompileCodeForAssignment(TextWriter writer, int index, string value, bool doBoundsCheck)
+        {
+            if (value == Ev3Name) return;
+
             if (Type.IsArray())
-                switch (Type)
+            {
+                if (index == -1)
                 {
-                    case EV3Type.Int8:
-                    case EV3Type.Int16:
-                    case EV3Type.Int32:
-                    case EV3Type.FloatArray:
-                        return $"CALL ARRAYCREATE_FLOAT {ev3Name}";
-                    case EV3Type.StringArray:
-                        return $"CALL ARRAYCREATE_STRING {ev3Name}";
+                    writer.WriteLine($"    ARRAY COPY {value} {Ev3Name}");
                 }
+                else
+                {
+                    switch (Type)
+                    {
+                        case EV3Type.Int8Array:
+                        case EV3Type.Int16Array:
+                        case EV3Type.Int32Array:
+                        case EV3Type.FloatArray:
+                            if (doBoundsCheck)
+                                writer.WriteLine($"    CALL ARRAYSTORE_FLOAT {index}.0 {value} {Ev3Name}");
+                            else
+                                writer.WriteLine($"    ARRAY_WRITE {Ev3Name} {index} {value}");
+                            break;
+                        case EV3Type.StringArray:
+                            writer.WriteLine($"    CALL ARRAYSTORE_STRING {index}.0 {value} {Ev3Name}");
+                            break;
+                    }
+                }
+            }
             else
             {
                 switch (Type)
                 {
                     case EV3Type.Int8:
-                        return $"MOVE8_8 0 {ev3Name}";
+                        writer.WriteLine($"    MOVE8_8 {value} {Ev3Name}");
+                        break;
                     case EV3Type.Int16:
-                        return $"MOVE16_16 0 {ev3Name}";
+                        writer.WriteLine($"    MOVE16_16 {value} {Ev3Name}");
+                        break;
                     case EV3Type.Int32:
-                        return $"MOVE32_32 0 {ev3Name}";
+                        writer.WriteLine($"    MOVE32_32 {value} {Ev3Name}");
+                        break;
                     case EV3Type.Float:
-                        return $"MOVEF_F 0.0 {ev3Name}";
+                        writer.WriteLine($"    MOVEF_F {value} {Ev3Name}");
+                        break;
                     case EV3Type.String:
-                        return $"STRINGS DUPLICATE '' {ev3Name}";
+                        writer.WriteLine($"    STRINGS DUPLICATE {value} {Ev3Name}");
+                        break;
                 }
             }
-            return "";
         }
     }
 }
