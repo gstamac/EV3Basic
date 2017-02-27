@@ -1,6 +1,7 @@
 ﻿using Microsoft.SmallBasic.Expressions;
 using System;
 using EV3BasicCompiler.Compilers;
+using System.IO;
 
 namespace EV3BasicCompiler.Compilers
 {
@@ -12,15 +13,35 @@ namespace EV3BasicCompiler.Compilers
 
         protected override void CalculateType()
         {
-            IExpressionCompiler subCompiler = Expression.Expression.Compiler();
-            type = subCompiler.Type;
-            isLiteral = subCompiler.IsLiteral;
+            type = ParentExpression.Expression.Compiler().Type;
         }
 
         protected override void CalculateValue()
         {
-            if (Expression.IsNumericLiteral())
-                value = SmallBasicExtensions.FormatFloat(Expression.ToString());
+            if (Type.IsNumber())
+            {
+                if (IsLiteral)
+                    value = SmallBasicExtensions.FormatFloat(-SmallBasicExtensions.ParseFloat(ParentExpression.Expression.Compiler().Value));
+            }
+            else
+                AddError("Need number after minus");
+        }
+
+        protected override void CalculateIsLiteral()
+        {
+            isLiteral = ParentExpression.Expression.Compiler().IsLiteral;
+        }
+
+        public override string Compile(TextWriter writer, IEV3Variable variable)
+        {
+            if (IsLiteral)
+                return Value;
+            else
+            {
+                string expressionValue = ParentExpression.Expression.Compiler().Compile(writer, variable);
+                writer.WriteLine($"    MATH NEGATE {expressionValue} {variable.Ev3Name}");
+                return variable.Ev3Name;
+            }
         }
     }
 }

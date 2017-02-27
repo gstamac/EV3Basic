@@ -1,4 +1,6 @@
-﻿namespace EV3BasicCompiler.Compilers
+﻿using System.IO;
+
+namespace EV3BasicCompiler.Compilers
 {
     public interface IExpressionCompiler 
     {
@@ -6,5 +8,6 @@
         bool IsLiteral { get; }
         string Value { get; }
         EV3CompilerContext Context { get; }
+        string Compile(TextWriter writer, IEV3Variable variable);
     }
 }

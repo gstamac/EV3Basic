@@ -63,6 +63,14 @@ namespace EV3BasicCompiler.Tests
         }
 
         [TestMethod]
+        public void ShouldFail_WhenDeclaringStringWithNegative()
+        {
+            TestParseFailure(@"
+                i = -""X""
+            ", "Need number after minus", 2, 21);
+        }
+
+        [TestMethod]
         public void ShouldDeclareIntArray()
         {
             TestDeclaration(@"
@@ -182,7 +190,6 @@ namespace EV3BasicCompiler.Tests
                 i = 10
                 i[2] = 10
             ", "Cannot use index on non-array variable 'i'", 3, 17);
-
         }
 
         [TestMethod]

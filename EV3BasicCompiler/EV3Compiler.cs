@@ -68,13 +68,13 @@ namespace EV3BasicCompiler
                 {
                     string setting = statement.EndingComment.Text.Substring(7).Trim();
                     if (setting.Equals("NOBOUNDSCHECK"))
-                        variables.DoBoundsCheck = false;
+                        context.DoBoundsCheck = false;
                     else if (setting.Equals("BOUNDSCHECK"))
-                        variables.DoBoundsCheck = true;
+                        context.DoBoundsCheck = true;
                     else if (setting.Equals("NODIVISIONCHECK"))
-                        variables.DoDivisionCheck = false;
+                        context.DoDivisionCheck = false;
                     else if (setting.Equals("DIVISIONCHECK"))
-                        variables.DoDivisionCheck = true;
+                        context.DoDivisionCheck = true;
                     else
                         AddError("Unknown PRAGMA: " + setting, statement.StartToken);
                 }

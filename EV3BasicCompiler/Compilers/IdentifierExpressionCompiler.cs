@@ -1,5 +1,6 @@
 ﻿using Microsoft.SmallBasic.Expressions;
 using System;
+using System.IO;
 
 namespace EV3BasicCompiler.Compilers
 {
@@ -11,14 +12,32 @@ namespace EV3BasicCompiler.Compilers
 
         protected override void CalculateType()
         {
-            EV3Variable reference = Context.FindVariable(Expression.VariableName());
+            EV3Variable reference = Context.FindVariable(VariableName);
             type = reference.Type;
-            //ProcessVariable(reference, trace, subResultTypes);
-            //return new EV3VariableTypeWithIndexAndValue(reference.Type, reference.MaxIndex);
         }
 
         protected override void CalculateValue()
         {
+            EV3Variable reference = Context.FindVariable(VariableName);
+
+            if (reference != null)
+                value = reference.Ev3Name;
+        }
+
+        public override string Compile(TextWriter writer, IEV3Variable variable)
+        {
+            return Value;
+        }
+
+        private string _variableName = null;
+        private string VariableName
+        {
+            get
+            {
+                if (_variableName == null)
+                    _variableName = ParentExpression.VariableName();
+                return _variableName;
+            }
         }
     }
 }

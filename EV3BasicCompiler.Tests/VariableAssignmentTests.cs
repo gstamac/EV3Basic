@@ -89,6 +89,17 @@ namespace EV3BasicCompiler.Tests
         }
 
         [TestMethod]
+        public void ShouldAssignFloatArray_NoBoundsCheck()
+        {
+            TestIt(@"
+                'PRAGMA NOBOUNDSCHECK
+                i[6] = 2.3
+            ", @"
+                ARRAY_WRITE VI 6 2.3
+            ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
         public void ShouldAssignFloatArray_WithFormulaIndexer()
         {
             TestIt(@"
@@ -108,17 +119,6 @@ namespace EV3BasicCompiler.Tests
                 MOVEF_F 3.0 VJ                   
                 ADDF VJ 4.0 F0                            
                 CALL ARRAYSTORE_FLOAT F0 2.0 VI
-            ", ExtractMainProgramCode);
-        }
-
-        [TestMethod]
-        public void ShouldAssignFloatArray_NoBoundsCheck()
-        {
-            TestIt(@"
-                'PRAGMA NOBOUNDSCHECK
-                i[6] = 2.3
-            ", @"
-                ARRAY_WRITE VI 6 2.3
             ", ExtractMainProgramCode);
         }
 
@@ -162,6 +162,16 @@ namespace EV3BasicCompiler.Tests
         }
 
         [TestMethod]
+        public void ShouldAssignFloat_WhenAssignedWithFormulaNegative()
+        {
+            TestIt(@"
+                i = -(10.3 + 10)
+            ", @"
+                MOVEF_F -20.3 VI
+            ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
         public void ShouldAssignFloat_WhenAssignedWithFormulaMultiple()
         {
             TestIt(@"
@@ -192,6 +202,20 @@ namespace EV3BasicCompiler.Tests
                 CALL TEXT.APPEND 'X' S0 VI
                 STRINGS VALUE_FORMATTED 10.0 '%g' 99 S0
                 CALL TEXT.APPEND S0 'X' VJ
+            ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
+        public void ShouldAssignString_WhenAssignedWithMixedNumberFormula()
+        {
+            TestIt(@"
+                i = ""1"" + 10
+                j = 10 + ""1""
+            ", @"
+                STRINGS VALUE_FORMATTED 10.0 '%g' 99 S0  
+                CALL TEXT.APPEND '1' S0 VI               
+                STRINGS VALUE_FORMATTED 10.0 '%g' 99 S0  
+                CALL TEXT.APPEND S0 '1' VJ                                          
             ", ExtractMainProgramCode);
         }
 
@@ -483,6 +507,20 @@ namespace EV3BasicCompiler.Tests
             ", @"
                 CALL ARRAYSTORE_STRING 2.0 'X' VI
                 CALL ARRAYGET_STRING 1.0 VJ VI         
+            ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
+        public void ShouldAssignString_WhenAssignedFromReference() // NEW!!!!!
+        {
+            TestIt(@"
+                j = ""X""
+                i = 10
+                j = i
+            ", @"
+                STRINGS DUPLICATE 'X' VJ     
+                MOVEF_F 10.0 VI 
+                STRINGS VALUE_FORMATTED VI '%g' 99 VJ
             ", ExtractMainProgramCode);
         }
 

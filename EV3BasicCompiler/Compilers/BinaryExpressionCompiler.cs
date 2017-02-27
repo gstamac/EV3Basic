@@ -1,8 +1,8 @@
 ﻿using Microsoft.SmallBasic.Expressions;
 using SBExpression = Microsoft.SmallBasic.Expressions.Expression;
 using System;
-using EV3BasicCompiler.Compilers;
 using Microsoft.SmallBasic;
+using System.IO;
 
 namespace EV3BasicCompiler.Compilers
 {
@@ -31,24 +31,24 @@ namespace EV3BasicCompiler.Compilers
         {
             if (LeftCompiler.IsLiteral && RightCompiler.IsLiteral)
             {
-                if (LeftExpression.IsNumericLiteral() && RightExpression.IsNumericLiteral())
+                if (LeftCompiler.Type.IsNumber() && RightCompiler.Type.IsNumber())
                 {
-                    switch (Expression.Operator.Token)
+                    switch (ParentExpression.Operator.Token)
                     {
                         case Token.Addition:
-                            value = SmallBasicExtensions.FormatFloat(SmallBasicExtensions.ParseFloat(LeftExpression.ToString()) + SmallBasicExtensions.ParseFloat(RightExpression.ToString()));
+                            value = SmallBasicExtensions.FormatFloat(SmallBasicExtensions.ParseFloat(LeftCompiler.Value) + SmallBasicExtensions.ParseFloat(RightCompiler.Value));
                             isLiteral = true;
                             break;
                         case Token.Subtraction:
-                            value = SmallBasicExtensions.FormatFloat(SmallBasicExtensions.ParseFloat(LeftExpression.ToString()) - SmallBasicExtensions.ParseFloat(RightExpression.ToString()));
+                            value = SmallBasicExtensions.FormatFloat(SmallBasicExtensions.ParseFloat(LeftCompiler.Value) - SmallBasicExtensions.ParseFloat(RightCompiler.Value));
                             isLiteral = true;
                             break;
                         case Token.Division:
-                            value = SmallBasicExtensions.FormatFloat(SmallBasicExtensions.ParseFloat(LeftExpression.ToString()) / SmallBasicExtensions.ParseFloat(RightExpression.ToString()));
+                            value = SmallBasicExtensions.FormatFloat(SmallBasicExtensions.ParseFloat(LeftCompiler.Value) / SmallBasicExtensions.ParseFloat(RightCompiler.Value));
                             isLiteral = true;
                             break;
                         case Token.Multiplication:
-                            value = SmallBasicExtensions.FormatFloat(SmallBasicExtensions.ParseFloat(LeftExpression.ToString()) * SmallBasicExtensions.ParseFloat(RightExpression.ToString()));
+                            value = SmallBasicExtensions.FormatFloat(SmallBasicExtensions.ParseFloat(LeftCompiler.Value) * SmallBasicExtensions.ParseFloat(RightCompiler.Value));
                             isLiteral = true;
                             break;
                             //case Token.And:
@@ -60,24 +60,111 @@ namespace EV3BasicCompiler.Compilers
                             //case Token.NotEqualTo:
                     }
                 }
-                else if (!LeftExpression.IsNumericLiteral() && !RightExpression.IsNumericLiteral())
+                else if (!LeftCompiler.Type.IsNumber() && !RightCompiler.Type.IsNumber())
                 {
-                    if (Expression.Operator.Token == Token.Addition)
+                    if (ParentExpression.Operator.Token == Token.Addition)
                     {
-                        value = '"' + LeftExpression.ToString().Trim('"') + RightExpression.ToString().Trim('"') + '"';
+                        value = '\'' + LeftCompiler.Value.Trim('\'') + RightCompiler.Value.Trim('\'') + '\'';
                         isLiteral = true;
                     }
                 }
             }
         }
 
+        protected override void CalculateIsLiteral()
+        {
+            EnsureValue();
+        }
+
+        public override string Compile(TextWriter writer, IEV3Variable variable)
+        {
+            EV3Type commonType = CalculateCommonType(LeftCompiler.Type, RightCompiler.Type);
+            if (commonType == EV3Type.Unknown)
+                Context.AddCompileError("Types of left and right side of expression don't match", ParentExpression.StartToken);
+            else
+            {
+                IEV3Variable leftTempVariable = Context.CreateTempVariable(LeftCompiler.Type, ParentExpression.StartToken);
+                IEV3Variable rightTempVariable = Context.CreateTempVariable(RightCompiler.Type, ParentExpression.StartToken);
+
+                string leftValue = LeftCompiler.Compile(writer, leftTempVariable);
+                string rightValue = RightCompiler.Compile(writer, rightTempVariable);
+
+                Context.RemoveTempVariable(leftTempVariable);
+                Context.RemoveTempVariable(rightTempVariable);
+
+                leftValue = ConvertIfNeeded(writer, leftValue, LeftCompiler, commonType);
+                rightValue = ConvertIfNeeded(writer, rightValue, RightCompiler, commonType);
+
+                if (Type.IsNumber())
+                {
+                    switch (ParentExpression.Operator.Token)
+                    {
+                        case Token.Addition:
+                            writer.WriteLine($"    ADDF {leftValue} {rightValue} {variable.Ev3Name}");
+                            return variable.Ev3Name;
+                        case Token.Subtraction:
+                            writer.WriteLine($"    SUBF {leftValue} {rightValue} {variable.Ev3Name}");
+                            return variable.Ev3Name;
+                        case Token.Division:
+                            if (Context.DoDivisionCheck)
+                                writer.WriteLine("<NOT IMPLEMENTED YET>");
+                            else
+                                writer.WriteLine($"    DIVF {leftValue} {rightValue} {variable.Ev3Name}");
+                            return variable.Ev3Name;
+                        case Token.Multiplication:
+                            writer.WriteLine($"    MULF {leftValue} {rightValue} {variable.Ev3Name}");
+                            return variable.Ev3Name;
+                    }
+                }
+                else if (ParentExpression.Operator.Token == Token.Addition)
+                {
+                    writer.WriteLine($"    CALL TEXT.APPEND {leftValue} {rightValue} {variable.Ev3Name}");
+                    return variable.Ev3Name;
+                }
+            }
+            return "";
+        }
+
+        private string ConvertIfNeeded(TextWriter writer, string value, IExpressionCompiler compiler, EV3Type outputType)
+        {
+            if (compiler.Type.BaseType().IsNumber() && outputType.BaseType() == EV3Type.String)
+            {
+                IEV3Variable outputVariable = Context.CreateTempVariable(EV3Type.String, ParentExpression.StartToken);
+
+                writer.WriteLine($"    STRINGS VALUE_FORMATTED {value} '%g' 99 {outputVariable.Ev3Name}");
+
+                Context.RemoveTempVariable(outputVariable);
+
+                return outputVariable.Ev3Name;
+            }
+            else
+                return value;
+
+        }
+
+        private EV3Type CalculateCommonType(EV3Type type1, EV3Type type2)
+        {
+            if (type1.BaseType()==type2.BaseType())
+            {
+                if (type1.IsArray())
+                    return type1;
+                return type2;
+            }
+            if (type1.BaseType().IsNumber() && type2.BaseType().IsNumber())
+                    return EV3Type.Float;
+            if ((type1.BaseType().IsNumber() && type2.BaseType() == EV3Type.String) || (type1.BaseType() == EV3Type.String && type2.BaseType().IsNumber()))
+                return EV3Type.String;
+
+            return EV3Type.Unknown;
+        }
+
         public SBExpression LeftExpression
         {
-            get { return Expression.LeftHandSide; }
+            get { return ParentExpression.LeftHandSide; }
         }
         public SBExpression RightExpression
         {
-            get { return Expression.RightHandSide; }
+            get { return ParentExpression.RightHandSide; }
         }
 
         private IExpressionCompiler _leftCompiler = null;
@@ -85,7 +172,8 @@ namespace EV3BasicCompiler.Compilers
         {
             get
             {
-                EnsureCompilers();
+                if (_leftCompiler == null)
+                    _leftCompiler = LeftExpression.Compiler();
                 return _leftCompiler;
             }
         }
@@ -95,17 +183,10 @@ namespace EV3BasicCompiler.Compilers
         {
             get
             {
-                EnsureCompilers();
+                if (_rightCompiler == null)
+                    _rightCompiler = RightExpression.Compiler();
                 return _rightCompiler;
             }
-        }
-
-        private void EnsureCompilers()
-        {
-            if (_leftCompiler == null)
-                _leftCompiler = LeftExpression.Compiler();
-            if (_rightCompiler == null)
-                _rightCompiler = RightExpression.Compiler();
         }
     }
 }

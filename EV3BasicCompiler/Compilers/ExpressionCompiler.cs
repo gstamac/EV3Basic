@@ -1,23 +1,23 @@
 ﻿using Microsoft.SmallBasic;
 using System;
 using SBExpression = Microsoft.SmallBasic.Expressions.Expression;
+using System.IO;
 
 namespace EV3BasicCompiler.Compilers
 {
     public abstract class ExpressionCompiler<T> : IExpressionCompiler where T : SBExpression
     {
         protected EV3Type type;
-        protected bool isLiteral;
+        protected bool? isLiteral;
         protected string value;
 
         public EV3CompilerContext Context { get; }
-        protected T Expression { get; }
+        protected T ParentExpression { get; }
 
         public ExpressionCompiler(T expression, EV3CompilerContext context)
         {
-            Expression = expression;
+            ParentExpression = expression;
             Context = context;
-            isLiteral = false;
             type = EV3Type.Unknown;
             value = null;
         }
@@ -35,8 +35,8 @@ namespace EV3BasicCompiler.Compilers
         {
             get
             {
-                EnsureValue();
-                return isLiteral;
+                EnsureIsLiteral();
+                return isLiteral.GetValueOrDefault();
             }
         }
 
@@ -56,6 +56,16 @@ namespace EV3BasicCompiler.Compilers
 
         protected abstract void CalculateType();
 
+        protected void EnsureIsLiteral()
+        {
+            if (!isLiteral.HasValue) CalculateIsLiteral();
+        }
+
+        protected virtual void CalculateIsLiteral()
+        {
+            isLiteral = false;
+        }
+
         protected void EnsureValue()
         {
             if (value == null) CalculateValue();
@@ -63,7 +73,9 @@ namespace EV3BasicCompiler.Compilers
 
         protected abstract void CalculateValue();
 
-        protected void AddError(string message) => AddError(message, Expression.StartToken);
+        public abstract string Compile(TextWriter writer, IEV3Variable variable);
+
+        protected void AddError(string message) => AddError(message, ParentExpression.StartToken);
         protected void AddError(string message, TokenInfo tokenInfo) => Context.AddError(message, tokenInfo);
 
         public override string ToString() => $"{base.ToString()}[Type = {type}, IsLiteral = {isLiteral}, Value = {value}]";

@@ -123,11 +123,10 @@ namespace EV3BasicCompiler.Tests
 
         private void DumpCodeSideBySide(string compiledCode, string expectedCode)
         {
-            //Console.WriteLine(extractedCode);
             string[] compiledLines = Regex.Split(compiledCode, "[\n\r\t ]*[\n\r]+[\n\r\t ]*").Where(l => !string.IsNullOrWhiteSpace(l)).ToArray();
             string[] expectedLines = Regex.Split(expectedCode, "[\n\r\t ]*[\n\r]+[\n\r\t ]*").Where(l => !string.IsNullOrWhiteSpace(l)).ToArray();
             int minLength = Math.Min(compiledLines.Length, expectedLines.Length);
-            int maxWidth = compiledLines.Max(l => l.Length) + 4;
+            int maxWidth = compiledLines.Any() ? compiledLines.Max(l => l.Length) + 4 : 30;
             Console.WriteLine();
             for (int i = 0; i < minLength; i++)
             {

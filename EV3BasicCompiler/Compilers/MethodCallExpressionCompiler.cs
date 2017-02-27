@@ -1,5 +1,6 @@
 ﻿using Microsoft.SmallBasic.Expressions;
 using System;
+using System.IO;
 
 namespace EV3BasicCompiler.Compilers
 {
@@ -11,16 +12,21 @@ namespace EV3BasicCompiler.Compilers
 
         protected override void CalculateType()
         {
-            string methodName = Expression.FullName().ToUpper();
+            string methodName = ParentExpression.FullName().ToUpper();
             EV3SubDefinition sub = Context.FindSubroutine(methodName);
             if (sub != null)
                 type = sub.ReturnType;
             else
-                AddError($"Unknown method call to {Expression.FullName()}");
+                AddError($"Unknown method call to {ParentExpression.FullName()}");
         }
 
         protected override void CalculateValue()
         {
+        }
+
+        public override string Compile(TextWriter writer, IEV3Variable variable)
+        {
+            throw new NotImplementedException();
         }
     }
 }
