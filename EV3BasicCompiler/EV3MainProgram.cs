@@ -58,7 +58,7 @@ namespace EV3BasicCompiler
                 StringWriter code = new StringWriter();
                 CompileCodeForSubroutine(code, name, statement);
 
-                EV3SubDefinition sub = new EV3SubDefinition(name, code.ToString());
+                EV3SubDefinition sub = new EV3SubDefinition(name, name, code.ToString());
                 subroutines.Add(sub);
             }
         }
@@ -108,7 +108,9 @@ namespace EV3BasicCompiler
             foreach (EV3SubDefinition sub in subroutines)
             {
                 writer.WriteLine();
+                writer.WriteLine($"SUB_{sub.Name}:");
                 writer.WriteLine(sub.Code);
+                writer.WriteLine($"ENDSUB_{sub.Name}:");
             }
         }
 
@@ -122,12 +124,10 @@ namespace EV3BasicCompiler
 
         private void CompileCodeForSubroutine(TextWriter writer, string name, SubroutineStatement statement)
         {
-            writer.WriteLine($"SUB_{name}:");
             CompileCodeForStatements(writer, statement.SubroutineBody);
             writer.WriteLine("    SUB8 STACKPOINTER 1 STACKPOINTER");
             writer.WriteLine("    READ32 RETURNSTACK STACKPOINTER INDEX");
             writer.WriteLine("    JR_DYNAMIC INDEX");
-            writer.WriteLine($"ENDSUB_{name}:");
         }
     }
 }

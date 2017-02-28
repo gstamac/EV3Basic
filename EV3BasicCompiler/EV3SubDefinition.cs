@@ -9,15 +9,17 @@ namespace EV3BasicCompiler
     {
         public bool Referenced { get; set; }
         public string Name { get; private set; }
+        public string Signature { get; private set; }
+        public string Code { get; private set; }
         public List<EV3Type> ParameterTypes { get; private set; }
         public EV3Type ReturnType { get; private set; }
-        public string Code { get; private set; }
         public List<string> References { get; private set; }
 
-        public EV3SubDefinition(string name, string code)
+        public EV3SubDefinition(string name, string signature, string code)
         {
             Referenced = false;
             Name = name;
+            Signature = signature;
             Code = code;
 
             ParseParameters();

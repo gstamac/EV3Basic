@@ -138,7 +138,7 @@ namespace EV3BasicCompiler
             Match match = Regex.Match(line, "(subcall|inline)[ \t]*([^ \t]+)[ \t]*//[ \t]*([SFAX8]*)([SFAX8V])([ \t]+([^ \t\n\r]+))*", RegexOptions.Singleline);
             if (match.Success)
             {
-                sub = new EV3SubDefinition(match.Groups[2].Value, GetBlock(line, reader));
+                sub = new EV3SubDefinition(match.Groups[2].Value, line, GetBlock(line, reader));
 
                 if (match.Groups[1].Value == "inline")
                 {
@@ -186,22 +186,19 @@ namespace EV3BasicCompiler
 
         private void LoadInit(string line, StringReader reader)
         {
-            runtimeInit += GetBlock(line, reader, true);
+            runtimeInit += GetBlock(line, reader);
         }
 
-        private string GetBlock(string signature, StringReader reader, bool skipCurlies = false)
+        private string GetBlock(string signature, StringReader reader)
         {
             StringWriter block = new StringWriter();
-            if (!skipCurlies)
-                block.WriteLine(signature);
             String line;
             while ((line = ReadLine(reader)) != null)
             {
-                bool isFinalCurly = CleanupLine(line).Equals("}");
-                if (!skipCurlies || (!CleanupLine(line).Equals("{") && !isFinalCurly))
-                    block.WriteLine(line);
-                if (isFinalCurly)
+                if (CleanupLine(line).Equals("}"))
                     return block.ToString();
+                if (!CleanupLine(line).Equals("{"))
+                    block.WriteLine(line);
             }
 
             return "";

@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace EV3BasicCompiler.Compilers
 {
@@ -73,7 +74,24 @@ namespace EV3BasicCompiler.Compilers
                 return "";
             }
 
-            return "<INLINE NOT SUPPORTED YET>";
+            using (var tempVariables = Context.UseTempVariables())
+            {
+                string inlineCode = sub.Code;
+
+                string[] arguments = ParentExpression.Arguments
+                    .Select(a => a.Compiler())
+                    .Select(c => c.Compile(writer, tempVariables.CreateVariable(c.Type))).ToArray();
+
+                for (int i = 0; i < arguments.Length; i++)
+                    inlineCode = inlineCode.Replace($":{i}", arguments[i]);
+                if (variable != null)
+                    inlineCode = inlineCode.Replace($":{arguments.Length}", variable.Ev3Name);
+                if (inlineCode.Contains(":#"))
+                    inlineCode = inlineCode.Replace(":#", Context.GetNextLabelNumber().ToString());
+
+                writer.WriteLine(inlineCode);
+            }
+            return variable?.Ev3Name;
         }
     }
 }
