@@ -55,13 +55,11 @@ namespace Test
             using (StreamReader reader = new StreamReader(SOURCE_FILENAME))
             using (StreamWriter writer = new StreamWriter(lmsFilename))
             {
-                compiler.Parse(reader);
+                compiler.Compile(reader, writer);
 
                 compiler.Errors.ForEach(e => Console.WriteLine($"ERROR: {e}"));
 
                 Console.Write(compiler.Dump());
-
-                compiler.GenerateEV3Code(writer);
 
                 writer.WriteLine();
                 writer.WriteLine("---------------------------------------------------");

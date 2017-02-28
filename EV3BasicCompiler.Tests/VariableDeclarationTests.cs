@@ -63,14 +63,6 @@ namespace EV3BasicCompiler.Tests
         }
 
         [TestMethod]
-        public void ShouldFail_WhenDeclaringStringWithNegative()
-        {
-            TestParseFailure(@"
-                i = -""X""
-            ", "Need number after minus", 2, 21);
-        }
-
-        [TestMethod]
         public void ShouldDeclareIntArray()
         {
             TestDeclaration(@"
@@ -171,25 +163,6 @@ namespace EV3BasicCompiler.Tests
                 ARRAY16 VI 12
                 DATAF VJ
             ");
-        }
-
-        [TestMethod]
-        public void ShouldFail_WhenAssigningArrayWithoutIndex()
-        {
-            TestParseFailure(@"
-                i[2] = 10
-                i = 10
-            ", "Cannot assign value to array variable 'i' without index", 3, 17);
-
-        }
-
-        [TestMethod]
-        public void ShouldFail_WhenAssigningNonArrayVariableWithIndex()
-        {
-            TestParseFailure(@"
-                i = 10
-                i[2] = 10
-            ", "Cannot use index on non-array variable 'i'", 3, 17);
         }
 
         [TestMethod]
@@ -361,6 +334,19 @@ namespace EV3BasicCompiler.Tests
         }
 
         [TestMethod]
+        public void ShouldDeclareFloatArray_WhenDeclaredWithReferenceAndReindexed()
+        {
+            TestDeclaration(@"
+                i[3] = 10.3
+                j = i
+                i[5] = 3
+            ", @"
+                ARRAY16 VI 5
+                ARRAY16 VJ 3
+            ");
+        }
+
+        [TestMethod]
         public void ShouldDeclareStringArray_WhenDeclaredWithReference()
         {
             TestDeclaration(@"
@@ -375,7 +361,7 @@ namespace EV3BasicCompiler.Tests
         [TestMethod]
         public void ShouldFail_WhenAssigningStringArrayWithFormula()
         {
-            TestParseFailure(@"
+            TestCompileFailure(@"
                 i[4] = ""X""
                 j = i + i
             ", "Operations on arrays are not permited", 3, 21);
@@ -404,19 +390,10 @@ namespace EV3BasicCompiler.Tests
         }
 
         [TestMethod]
-        public void ShouldFail_WhenSameIdentifierIsUsedForDifferentTypes()
-        {
-            TestParseFailure(@"
-                i = ""X""
-                i = 10
-            ", "Cannot assign different types to 'i'", 3, 17);
-        }
-
-        [TestMethod]
         public void ShouldDeclareInt_WhenReferencingExternalFunction()
         {
             TestDeclaration(@"
-                raw = Sensor.ReadRaw(sensorId, 8)
+                raw = Sensor.ReadRaw(1, 8)
             ", @"
                 ARRAY16 VRAW 2
             ");

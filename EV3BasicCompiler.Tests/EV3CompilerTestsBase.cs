@@ -47,9 +47,8 @@ namespace EV3BasicCompiler.Tests
             using (StringReader stringReader = new StringReader(sbCode))
             using (StringWriter writer = new StringWriter())
             {
-                compiler.Parse(stringReader);
+                compiler.Compile(stringReader, writer);
 
-                compiler.GenerateEV3Code(writer);
                 string code = writer.ToString();
 
                 Console.WriteLine("======> ERRORS <======");
@@ -71,7 +70,7 @@ namespace EV3BasicCompiler.Tests
             }
         }
 
-        protected void TestItDump(string sbCode, string expectedCode, Func<string, string> extractCodeFunc)
+        protected void TestItDump(string sbCode, string expectedCode, Func<string, string> extractCodeFunc = null)
         {
             Parser parser = new Parser();
             using (StringReader stringReader = new StringReader(sbCode))
@@ -143,12 +142,14 @@ namespace EV3BasicCompiler.Tests
             Console.WriteLine();
         }
 
-        protected void TestParseFailure(string sbCode, string message, int line, int column)
+        protected void TestCompileFailure(string sbCode, string message, int line, int column)
         {
             using (EV3Compiler compiler = new EV3Compiler())
             using (StringReader stringReader = new StringReader(sbCode))
+            using (StringWriter writer = new StringWriter())
             {
-                compiler.Parse(stringReader);
+                compiler.Compile(stringReader, writer);
+
                 Console.WriteLine(compiler.Dump());
 
                 compiler.Errors.Should().Contain(e => e.Message == message && e.Line == line && e.Column == column);

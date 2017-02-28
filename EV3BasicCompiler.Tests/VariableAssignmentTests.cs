@@ -133,21 +133,14 @@ namespace EV3BasicCompiler.Tests
         }
 
         [TestMethod]
-        public void ShouldAssignStringArray_WhenUsingCondensedFormat()
+        public void ShouldAssignStringArray_WhenUsingCondensedFormat() // NEW!!!!!
         {
             TestIt(@"
                 i = ""1=1;2=2;3=3""
             ", @"
-                CALL ARRAYSTORE_STRING 1.0 '1' VI
-                CALL ARRAYSTORE_STRING 2.0 '2' VI
-                CALL ARRAYSTORE_STRING 3.0 '3' VI
-            ", ExtractMainProgramCode);
-            TestIt(@"
-                i = ""1=1;2=2;3=3;""
-            ", @"
-                CALL ARRAYSTORE_STRING 1.0 '1' VI
-                CALL ARRAYSTORE_STRING 2.0 '2' VI
-                CALL ARRAYSTORE_STRING 3.0 '3' VI
+                CALL ARRAYSTORE_STRING 1.0 '1' VI   
+                CALL ARRAYSTORE_STRING 2.0 '2' VI   
+                CALL ARRAYSTORE_STRING 3.0 '3' VI          
             ", ExtractMainProgramCode);
         }
 
@@ -188,6 +181,18 @@ namespace EV3BasicCompiler.Tests
                 i = ""X"" + ""Y""
             ", @"
                 STRINGS DUPLICATE 'XY' VI
+            ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
+        public void ShouldAssignStringWithConvert_WhenAssignedWithFloat()  // NEW!!!!!
+        {
+            TestIt(@"
+                i = ""X""
+                i = 10
+            ", @"
+                STRINGS DUPLICATE 'X' VI
+                STRINGS VALUE_FORMATTED 10.0 '%g' 99 VI
             ", ExtractMainProgramCode);
         }
 
@@ -410,8 +415,8 @@ namespace EV3BasicCompiler.Tests
                 MOVEF_F 3.0 VJ  
                 MOVEF_F 5.3 VK  
                 SUBF VI VJ F0   
-                MULF F0 VK F0   
-                DIVF F0 VI VL                                 
+                MULF F0 VK F1   
+                DIVF F1 VI VL                                 
             ", ExtractMainProgramCode);
         }
 
@@ -455,8 +460,8 @@ namespace EV3BasicCompiler.Tests
                 MOVEF_F 5.3 VK
                 SUBF VI VJ F0
                 MATH NEGATE VK F1
-                MULF F0 F1 F0
-                DIVF F0 VI VL
+                MULF F0 F1 F2
+                DIVF F2 VI VL
             ", ExtractMainProgramCode);
         }
 
@@ -487,6 +492,21 @@ namespace EV3BasicCompiler.Tests
         }
 
         [TestMethod]
+        public void ShouldAssignFloat_WithReferenceFormulaIndexer()
+        {
+            TestIt(@"
+                k = 3
+                i[2] = 10.3
+                j = i[k + 1]
+            ", @"
+                MOVEF_F 3.0 VK                     
+                CALL ARRAYSTORE_FLOAT 2.0 10.3 VI  
+                ADDF VK 1.0 F0                     
+                CALL ARRAYGET_FLOAT F0 VJ VI                                                          
+            ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
         public void ShouldAssignString_WhenAssignedWithReference()
         {
             TestIt(@"
@@ -507,20 +527,6 @@ namespace EV3BasicCompiler.Tests
             ", @"
                 CALL ARRAYSTORE_STRING 2.0 'X' VI
                 CALL ARRAYGET_STRING 1.0 VJ VI         
-            ", ExtractMainProgramCode);
-        }
-
-        [TestMethod]
-        public void ShouldAssignString_WhenAssignedFromReference() // NEW!!!!!
-        {
-            TestIt(@"
-                j = ""X""
-                i = 10
-                j = i
-            ", @"
-                STRINGS DUPLICATE 'X' VJ     
-                MOVEF_F 10.0 VI 
-                STRINGS VALUE_FORMATTED VI '%g' 99 VJ
             ", ExtractMainProgramCode);
         }
 
@@ -569,6 +575,14 @@ namespace EV3BasicCompiler.Tests
         }
 
         [TestMethod]
+        public void ShouldFail_WhenAssigningStringWithNegative()
+        {
+            TestCompileFailure(@"
+                i = -""X""
+            ", "Need number after minus", 2, 21);
+        }
+
+        [TestMethod]
         public void ShouldAssignFloatArray_WhenAssignedWithReference()
         {
             TestIt(@"
@@ -577,6 +591,19 @@ namespace EV3BasicCompiler.Tests
             ", @"
                 CALL ARRAYSTORE_FLOAT 3.0 10.3 VI  
                 ARRAY COPY VI VJ            
+            ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
+        public void ShouldAssignFloatArray_WhenAssignedWithReferenceToSelf()
+        {
+            TestIt(@"
+                i[3] = 10.3
+                i[2] = i[3]
+            ", @"
+                CALL ARRAYSTORE_FLOAT 3.0 10.3 VI 
+                CALL ARRAYGET_FLOAT 3.0 F0 VI                                       
+                CALL ARRAYSTORE_FLOAT 2.0 F0 VI          
             ", ExtractMainProgramCode);
         }
 
@@ -592,34 +619,116 @@ namespace EV3BasicCompiler.Tests
             ", ExtractMainProgramCode);
         }
 
-        //[TestMethod]
-        //public void ShouldAssignInt_WhenReferencingExternalFunction()
-        //{
-        //    TestIt(@"
-        //        raw = Sensor.ReadRaw(sensorId, 8)
-        //    ", @"
-        //        ARRAY16 VRAW 2
-        //    ", ExtractMainProgramCode);
-        //}
+        [TestMethod]
+        public void ShouldFail_WhenAssigningArrayWithoutIndex()
+        {
+            TestCompileFailure(@"
+                i[2] = 10
+                i = 10
+            ", "Cannot assign value to array variable 'i' without index", 3, 17);
 
-        //[TestMethod]
-        //public void ShouldAssignInt_WhenReferencingExternalInlineFunction()
-        //{
-        //    TestIt(@"
-        //        i = Mailbox.Receive(8)
-        //    ", @"
-        //        DATAS VI 252
-        //    ", ExtractMainProgramCode);
-        //}
+        }
 
-        //[TestMethod]
-        //public void ShouldAssignInt_WhenReferencingExternalProperty()
-        //{
-        //    TestIt(@"
-        //        i = Buttons.Current
-        //    ", @"
-        //        DATAS VI 252
-        //    ", ExtractMainProgramCode);
-        //}
+        [TestMethod]
+        public void ShouldFail_WhenAssigningNonArrayVariableWithIndex()
+        {
+            TestCompileFailure(@"
+                i = 10
+                i[2] = 10
+            ", "Cannot use index on non-array variable 'i'", 3, 17);
+        }
+
+        [TestMethod]
+        public void ShouldFail_WhenAssigningArrayVariableToNonArrayVariable()
+        {
+            TestCompileFailure(@"
+                i[2] = 10
+                j = 10
+                j = i
+            ", "Cannot assign array value to non-array variable 'j'", 4, 17);
+        }
+
+        [TestMethod]
+        [Ignore]
+        public void ShouldAssignStringArrayWithConvert_WhenAssignedWithFloat()  // NEW!!!!!
+        {
+            TestIt(@"
+                i[2] = ""X""
+                i[3] = 10
+            ", @"
+                CALL ARRAYSTORE_STRING 2.0 'X' VI  
+                STRINGS VALUE_FORMATTED 10.0 '%g' 99 S0
+                CALL ARRAYSTORE_STRING 3.0 S0 VI    
+            ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
+        [Ignore]
+        public void ShouldAssignStringArrayWithConvert_WhenAssignedWithFloatArray()  // NEW!!!!!
+        {
+            TestIt(@"
+                i[2] = ""X""
+                j[1] = 10
+                i[3] = j[1]
+            ", @"
+                CALL ARRAYSTORE_STRING 2.0 'X' VI  
+                CALL ARRAYSTORE_FLOAT 1.0 10.0 VJ  
+                CALL ARRAYGET_FLOAT 1.0 VI F0                         
+                STRINGS VALUE_FORMATTED F0 '%g' 99 S0
+                CALL ARRAYSTORE_STRING 3.0 S0 VI   
+            ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
+        public void ShouldFail_WhenSameIdentifierIsUsedForDifferentTypes()
+        {
+            TestCompileFailure(@"
+                i = 10
+                i = ""X""
+            ", "Cannot assign String value to Float variable 'i'", 3, 17);
+        }
+
+        [TestMethod]
+        public void ShouldAssignFloatArray_WhenReferencingExternalFunction()
+        {
+            TestIt(@"
+                raw = Sensor.ReadRaw(1, 8)
+            ", @"
+                CALL SENSOR.READRAW 1.0 8.0 VRAW
+            ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
+        [Ignore]
+        public void ShouldAssignFloatWithConvert_WhenReferencingExternalFunction() // NEW!!!!!
+        {
+            TestIt(@"
+                raw = ""X""
+                raw = Sensor.ReadRawValue(1, 8)
+            ", @"
+                STRINGS DUPLICATE 'X' VRAW
+                CALL SENSOR.READRAW 1.0 8.0 F0
+                STRINGS VALUE_FORMATTED F0 '%g' 99 VRAW 
+            ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
+        public void ShouldAssignInt_WhenReferencingExternalProperty()
+        {
+            TestIt(@"
+                i = Buttons.Current
+            ", @"
+                CALL BUTTONS.CURRENT VI 
+            ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
+        [Ignore]
+        public void ShouldFail_WhenAssigningUnknownProperty()
+        {
+            TestCompileFailure(@"
+                Unknown.Property = 10
+            ", "Unknown property to set", 0, 0);
+        }
     }
 }

@@ -51,10 +51,15 @@
     <Compile Include="Compilers\BinaryExpressionCompiler.cs" />
     <Compile Include="Compiler.cs" />
     <Compile Include="Compilers\AssignmentStatementCompiler.cs" />
+    <Compile Include="Compilers\EmptyStatementCompiler.cs" />
     <Compile Include="Compilers\EV3CompilerContext.cs" />
     <Compile Include="Compilers\ExpressionCompiler.cs" />
+    <Compile Include="Compilers\IAssignmentExpressionCompiler.cs" />
     <Compile Include="Compilers\IExpressionCompiler.cs" />
     <Compile Include="Compilers\IStatementCompiler.cs" />
+    <Compile Include="Compilers\MethodCallStatementCompiler.cs" />
+    <Compile Include="Compilers\StatementCompiler.cs" />
+    <Compile Include="Compilers\ThreadStatementCompiler.cs" />
     <Compile Include="Error.cs" />
     <Compile Include="EV3MainProgram.cs" />
     <Compile Include="EV3Compiler.cs" />

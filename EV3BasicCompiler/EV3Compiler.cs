@@ -35,19 +35,37 @@ namespace EV3BasicCompiler
 
         public List<Error> Errors { get { return context.Errors; } }
 
-        public void Parse(TextReader reader)
+        public void Compile(TextReader reader, TextWriter writer)
         {
             Clear();
+
+            Parse(reader);
+            if (context.Errors.Count != 0) return;
+
+            LoadLibrary();
+            ProcessPragmas();
+            LoadVariables();
+            ProcessCode();
+
+            using (StringWriter tempWriter = new StringWriter())
+            {
+                GenerateMainThread(tempWriter);
+                GenerateThreads(tempWriter);
+                GeneratePrograms(tempWriter);
+                GenerateReferences(tempWriter);
+                GenerateInitialization(writer);
+                writer.Write(tempWriter.ToString());
+            }
+
+            context.Errors.AddRange(mainProgram.Errors);
+            context.Errors.AddRange(library.Errors);
+        }
+
+        private void Parse(TextReader reader)
+        {
             parser.Parse(reader);
             parser.AttachCompilers(context);
             foreach (SBError error in SBErrors) AddError(error);
-            if (context.Errors.Count == 0)
-            {
-                LoadLibrary();
-                ProcessPragmas();
-                ProcessVariables();
-                ProcessCode();
-            }
         }
 
         private void Clear()
@@ -98,32 +116,16 @@ namespace EV3BasicCompiler
             library.LoadModule(Resources.Text);
             library.LoadModule(Resources.Thread);
             library.LoadModule(Resources.Vector);
-            context.Errors.AddRange(library.Errors);
         }
 
-        private void ProcessVariables()
+        private void LoadVariables()
         {
             variables.Process(library.GetSubResultTypes());
-            context.Errors.AddRange(variables.Errors);
         }
 
         private void ProcessCode()
         {
             mainProgram.Process();
-            context.Errors.AddRange(mainProgram.Errors);
-        }
-
-        public void GenerateEV3Code(TextWriter writer)
-        {
-            GenerateInitialization(writer);
-            GenerateMainThread(writer);
-            GenerateThreads(writer);
-            GeneratePrograms(writer);
-            GenerateReferences(writer);
-
-            context.Errors.AddRange(variables.CompileErrors);
-            context.Errors.AddRange(mainProgram.CompileErrors);
-            context.Errors.AddRange(library.CompileErrors);
         }
 
         private void GenerateInitialization(TextWriter writer)

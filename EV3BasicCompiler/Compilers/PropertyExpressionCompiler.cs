@@ -4,7 +4,7 @@ using System.IO;
 
 namespace EV3BasicCompiler.Compilers
 {
-    public class PropertyExpressionCompiler : ExpressionCompiler<PropertyExpression>
+    public class PropertyExpressionCompiler : ExpressionCompiler<PropertyExpression>//, IAssignmentExpressionCompiler
     {
         public PropertyExpressionCompiler(PropertyExpression expression, EV3CompilerContext context) : base(expression, context)
         {
@@ -16,17 +16,28 @@ namespace EV3BasicCompiler.Compilers
             EV3SubDefinition sub = Context.FindSubroutine(propertyName);
             if (sub != null)
                 type = sub.ReturnType;
-            else
-                AddError($"Unknown property {ParentExpression.FullName()}");
         }
 
         protected override void CalculateValue()
         {
+            value = ParentExpression.FullName().ToUpper(); 
         }
 
         public override string Compile(TextWriter writer, IEV3Variable variable)
         {
-            throw new NotImplementedException();
+            EV3SubDefinition sub = Context.FindSubroutine(Value);
+            if (sub != null)
+            {
+                writer.WriteLine($"    CALL {Value} {variable.Ev3Name}");
+            }
+            else
+                AddError($"Unknown property {ParentExpression.FullName()}");
+
+            return variable.Ev3Name;
+        }
+
+        public void CompileAssignment(TextWriter writer, string compiledValue, string outputName)
+        {
         }
     }
 }

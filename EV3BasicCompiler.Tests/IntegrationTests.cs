@@ -183,11 +183,10 @@ namespace EV3BasicCompiler.Tests
             using (StreamReader stringReader = new StreamReader(fileName))
             using (StringWriter writer = new StringWriter())
             {
-                compiler.Parse(stringReader);
+                compiler.Compile(stringReader, writer);
+
                 if (withDump)
                     Console.WriteLine(compiler.Dump());
-
-                compiler.GenerateEV3Code(writer);
 
                 compiler.Errors.Should().BeEmpty();
 

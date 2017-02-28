@@ -69,6 +69,7 @@
     <Compile Include="LibraryTests.cs" />
     <Compile Include="LoopsTests.cs" />
     <Compile Include="MainProgramTests.cs" />
+    <Compile Include="SmallBasicParserExtensionsTests.cs" />
     <Compile Include="SubroutinesTests.cs" />
     <Compile Include="ThreadTests.cs" />
     <Compile Include="VariableAssignmentTests.cs" />

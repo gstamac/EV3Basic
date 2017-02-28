@@ -16,7 +16,6 @@ namespace EV3BasicCompiler
         private int currentLineNo = 0;
 
         public List<Error> Errors { get; private set; }
-        public List<Error> CompileErrors { get; private set; }
 
         public EV3Library()
         {
@@ -26,7 +25,6 @@ namespace EV3BasicCompiler
             subroutines = new List<EV3SubDefinition>();
             inlines = new List<EV3SubDefinition>();
             Errors = new List<Error>();
-            CompileErrors = new List<Error>();
         }
 
         public void Clear()
@@ -37,7 +35,6 @@ namespace EV3BasicCompiler
             subroutines.Clear();
             inlines.Clear();
             Errors.Clear();
-            CompileErrors.Clear();
         }
 
         public void LoadModule(string moduleSource)
@@ -71,7 +68,12 @@ namespace EV3BasicCompiler
 
         public EV3SubDefinition FindSubroutine(string subroutineName)
         {
-            return subroutines.Concat(inlines).FirstOrDefault(s => s.Name.Equals(subroutineName, StringComparison.InvariantCultureIgnoreCase));
+            return subroutines.FirstOrDefault(s => s.Name.Equals(subroutineName, StringComparison.InvariantCultureIgnoreCase));
+        }
+
+        public EV3SubDefinition FindInline(string subroutineName)
+        {
+            return inlines.FirstOrDefault(s => s.Name.Equals(subroutineName, StringComparison.InvariantCultureIgnoreCase));
         }
 
         public Dictionary<string, EV3Type> GetSubResultTypes()

@@ -8,8 +8,6 @@ namespace EV3BasicCompiler.Compilers
 {
     public class BinaryExpressionCompiler : ExpressionCompiler<BinaryExpression>
     {
-        SBExpression simplifiedExpression = null;
-
         public BinaryExpressionCompiler(BinaryExpression expression, EV3CompilerContext context) : base(expression, context)
         {
         }
@@ -78,47 +76,50 @@ namespace EV3BasicCompiler.Compilers
 
         public override string Compile(TextWriter writer, IEV3Variable variable)
         {
+            if (IsLiteral)
+            {
+                return Value;
+            }
+
             EV3Type commonType = CalculateCommonType(LeftCompiler.Type, RightCompiler.Type);
             if (commonType == EV3Type.Unknown)
-                Context.AddCompileError("Types of left and right side of expression don't match", ParentExpression.StartToken);
+                AddError("Types of left and right side of expression don't match");
             else
             {
-                IEV3Variable leftTempVariable = Context.CreateTempVariable(LeftCompiler.Type, ParentExpression.StartToken);
-                IEV3Variable rightTempVariable = Context.CreateTempVariable(RightCompiler.Type, ParentExpression.StartToken);
-
-                string leftValue = LeftCompiler.Compile(writer, leftTempVariable);
-                string rightValue = RightCompiler.Compile(writer, rightTempVariable);
-
-                Context.RemoveTempVariable(leftTempVariable);
-                Context.RemoveTempVariable(rightTempVariable);
-
-                leftValue = ConvertIfNeeded(writer, leftValue, LeftCompiler, commonType);
-                rightValue = ConvertIfNeeded(writer, rightValue, RightCompiler, commonType);
-
-                if (Type.IsNumber())
+                using (var tempVariables = Context.UseTempVariables())
                 {
-                    switch (ParentExpression.Operator.Token)
+                    string leftValue = LeftCompiler.Compile(writer, tempVariables.CreateVariable(LeftCompiler.Type));
+                    string rightValue = RightCompiler.Compile(writer, tempVariables.CreateVariable(RightCompiler.Type));
+
+                    leftValue = ConvertIfNeeded(writer, leftValue, LeftCompiler, commonType);
+                    rightValue = ConvertIfNeeded(writer, rightValue, RightCompiler, commonType);
+
+                    if (Type.IsNumber())
                     {
-                        case Token.Addition:
-                            writer.WriteLine($"    ADDF {leftValue} {rightValue} {variable.Ev3Name}");
-                            return variable.Ev3Name;
-                        case Token.Subtraction:
-                            writer.WriteLine($"    SUBF {leftValue} {rightValue} {variable.Ev3Name}");
-                            return variable.Ev3Name;
-                        case Token.Division:
-                            if (Context.DoDivisionCheck)
-                                writer.WriteLine("<NOT IMPLEMENTED YET>");
-                            else
-                                writer.WriteLine($"    DIVF {leftValue} {rightValue} {variable.Ev3Name}");
-                            return variable.Ev3Name;
-                        case Token.Multiplication:
-                            writer.WriteLine($"    MULF {leftValue} {rightValue} {variable.Ev3Name}");
-                            return variable.Ev3Name;
+                        switch (ParentExpression.Operator.Token)
+                        {
+                            case Token.Addition:
+                                writer.WriteLine($"    ADDF {leftValue} {rightValue} {variable.Ev3Name}");
+                                break;
+                            case Token.Subtraction:
+                                writer.WriteLine($"    SUBF {leftValue} {rightValue} {variable.Ev3Name}");
+                                break;
+                            case Token.Division:
+                                if (Context.DoDivisionCheck)
+                                    writer.WriteLine("<NOT IMPLEMENTED YET>");
+                                else
+                                    writer.WriteLine($"    DIVF {leftValue} {rightValue} {variable.Ev3Name}");
+                                break;
+                            case Token.Multiplication:
+                                writer.WriteLine($"    MULF {leftValue} {rightValue} {variable.Ev3Name}");
+                                break;
+                        }
                     }
-                }
-                else if (ParentExpression.Operator.Token == Token.Addition)
-                {
-                    writer.WriteLine($"    CALL TEXT.APPEND {leftValue} {rightValue} {variable.Ev3Name}");
+                    else if (ParentExpression.Operator.Token == Token.Addition)
+                    {
+                        writer.WriteLine($"    CALL TEXT.APPEND {leftValue} {rightValue} {variable.Ev3Name}");
+                    }
+
                     return variable.Ev3Name;
                 }
             }
@@ -129,13 +130,14 @@ namespace EV3BasicCompiler.Compilers
         {
             if (compiler.Type.BaseType().IsNumber() && outputType.BaseType() == EV3Type.String)
             {
-                IEV3Variable outputVariable = Context.CreateTempVariable(EV3Type.String, ParentExpression.StartToken);
+                using (var tempVariables = Context.UseTempVariables())
+                {
+                    IEV3Variable outputVariable = tempVariables.CreateVariable(EV3Type.String);
 
-                writer.WriteLine($"    STRINGS VALUE_FORMATTED {value} '%g' 99 {outputVariable.Ev3Name}");
+                    writer.WriteLine($"    STRINGS VALUE_FORMATTED {value} '%g' 99 {outputVariable.Ev3Name}");
 
-                Context.RemoveTempVariable(outputVariable);
-
-                return outputVariable.Ev3Name;
+                    return outputVariable.Ev3Name;
+                }
             }
             else
                 return value;
@@ -144,14 +146,14 @@ namespace EV3BasicCompiler.Compilers
 
         private EV3Type CalculateCommonType(EV3Type type1, EV3Type type2)
         {
-            if (type1.BaseType()==type2.BaseType())
+            if (type1.BaseType() == type2.BaseType())
             {
                 if (type1.IsArray())
                     return type1;
                 return type2;
             }
             if (type1.BaseType().IsNumber() && type2.BaseType().IsNumber())
-                    return EV3Type.Float;
+                return EV3Type.Float;
             if ((type1.BaseType().IsNumber() && type2.BaseType() == EV3Type.String) || (type1.BaseType() == EV3Type.String && type2.BaseType().IsNumber()))
                 return EV3Type.String;
 

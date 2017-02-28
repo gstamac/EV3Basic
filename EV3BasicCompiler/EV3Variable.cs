@@ -110,56 +110,5 @@ namespace EV3BasicCompiler
             }
         }
 
-        public void CompileCodeForAssignment(TextWriter writer, int index, string value, bool doBoundsCheck)
-        {
-            if (value == Ev3Name) return;
-
-            if (Type.IsArray())
-            {
-                if (index == -1)
-                {
-                    writer.WriteLine($"    ARRAY COPY {value} {Ev3Name}");
-                }
-                else
-                {
-                    switch (Type)
-                    {
-                        case EV3Type.Int8Array:
-                        case EV3Type.Int16Array:
-                        case EV3Type.Int32Array:
-                        case EV3Type.FloatArray:
-                            if (doBoundsCheck)
-                                writer.WriteLine($"    CALL ARRAYSTORE_FLOAT {index}.0 {value} {Ev3Name}");
-                            else
-                                writer.WriteLine($"    ARRAY_WRITE {Ev3Name} {index} {value}");
-                            break;
-                        case EV3Type.StringArray:
-                            writer.WriteLine($"    CALL ARRAYSTORE_STRING {index}.0 {value} {Ev3Name}");
-                            break;
-                    }
-                }
-            }
-            else
-            {
-                switch (Type)
-                {
-                    case EV3Type.Int8:
-                        writer.WriteLine($"    MOVE8_8 {value} {Ev3Name}");
-                        break;
-                    case EV3Type.Int16:
-                        writer.WriteLine($"    MOVE16_16 {value} {Ev3Name}");
-                        break;
-                    case EV3Type.Int32:
-                        writer.WriteLine($"    MOVE32_32 {value} {Ev3Name}");
-                        break;
-                    case EV3Type.Float:
-                        writer.WriteLine($"    MOVEF_F {value} {Ev3Name}");
-                        break;
-                    case EV3Type.String:
-                        writer.WriteLine($"    STRINGS DUPLICATE {value} {Ev3Name}");
-                        break;
-                }
-            }
-        }
     }
 }

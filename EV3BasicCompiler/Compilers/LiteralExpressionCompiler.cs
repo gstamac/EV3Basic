@@ -42,7 +42,6 @@ namespace EV3BasicCompiler.Compilers
             if (ParentExpression.IsNumericLiteral())
             {
                 value = SmallBasicExtensions.FormatFloat(valueString);
-                //value = valueString;
             }
             else
             {
@@ -57,19 +56,15 @@ namespace EV3BasicCompiler.Compilers
 
         public override string Compile(TextWriter writer, IEV3Variable variable)
         {
-            //List<EV3VariableTypeWithIndexAndValue> values = new List<EV3VariableTypeWithIndexAndValue>();
+            if (Type == EV3Type.StringArray && variable.Type == EV3Type.StringArray)
+            {
+                foreach (Match match in Regex.Matches(Value, @"([\d]+)=([^;']*)"))
+                {
+                    writer.WriteLine($"    CALL ARRAYSTORE_STRING {match.Groups[1].Value}.0 '{match.Groups[2].Value}' {variable.Ev3Name}");
+                }
+                return "";
+            }
 
-            //EV3VariableTypeWithIndexAndValue expressionType = EV3VariableTypeWithIndexAndValue.CreateFromLiteral(expression);
-            //if (expressionType.Type == EV3Type.StringArray && variable.Type == EV3Type.StringArray)
-            //{
-            //    foreach (Match match in Regex.Matches(expression.ToString(), @"([\d]+)=([^;""]*)"))
-            //        values.Add(ConvertIfNeeded(writer, expression, variable.Type,
-            //            new EV3VariableTypeWithIndexAndValue(EV3Type.StringArray, int.Parse(match.Groups[1].Value), $"'{match.Groups[2].Value}'")));
-            //}
-            //else
-            //{
-            //    values.Add(ConvertIfNeeded(writer, expression, variable.Type, expressionType));
-            //}
             return Value;
         }
 

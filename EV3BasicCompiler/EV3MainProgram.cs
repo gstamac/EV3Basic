@@ -7,6 +7,8 @@ using System.Linq;
 using System.IO;
 using System.Text;
 using Microsoft.SmallBasic.Expressions;
+using EV3BasicCompiler.Compilers;
+using EV3BasicCompiler;
 
 namespace EV3BasicCompiler
 {
@@ -14,12 +16,10 @@ namespace EV3BasicCompiler
     {
         private Parser parser;
         private EV3Variables variables;
-        int nextLabel;
         private readonly List<string> threads;
         private readonly List<EV3SubDefinition> subroutines;
 
         public List<Error> Errors { get; private set; }
-        public List<Error> CompileErrors { get; private set; }
 
         public EV3MainProgram(Parser parser, EV3Variables variables)
         {
@@ -30,7 +30,6 @@ namespace EV3BasicCompiler
             subroutines = new List<EV3SubDefinition>();
 
             Errors = new List<Error>();
-            CompileErrors = new List<Error>();
 
             Clear();
         }
@@ -40,8 +39,6 @@ namespace EV3BasicCompiler
             threads.Clear();
             subroutines.Clear();
             Errors.Clear();
-            CompileErrors.Clear();
-            nextLabel = 0;
         }
 
         public void Process()
@@ -123,25 +120,18 @@ namespace EV3BasicCompiler
             using (StringWriter mainProgram = new StringWriter())
             {
                 CompileCodeForStatements(mainProgram, parser.ParseTree.Where(s => !(s is SubroutineStatement)));
-                CompileCodeForThreadDispatchTable(writer);
+                CompileCodeForThreadDispatchTable(writer, parser.ParseTree.OfType<AssignmentStatement>());
                 writer.Write(mainProgram);
             }
         }
 
-        private void CompileCodeForThreadDispatchTable(TextWriter writer)
+        private void CompileCodeForThreadDispatchTable(TextWriter writer, IEnumerable<AssignmentStatement> statements)
         {
-            // add dispatch table to call proper sub-program first, if this is requested
-            for (int i = 0; i < threads.Count; i++)
+            foreach (AssignmentStatement assignmentStatement in statements)
             {
-                string thread = threads[i];
-                int label = GetLabelNumber();
-                writer.WriteLine("    JR_NEQ32 SUBPROGRAM " + i + " dispatch" + label);
-                // put initial return address on stack
-
-                writer.WriteLine("    WRITE32 ENDSUB_" + thread + ":ENDTHREAD STACKPOINTER RETURNSTACK");
-                writer.WriteLine("    ADD8 STACKPOINTER 1 STACKPOINTER");
-                writer.WriteLine("    JR SUB_" + thread);
-                writer.WriteLine("  dispatch" + label + ":");
+                ThreadStatementCompiler threadStatementCompiler = assignmentStatement.Compiler<ThreadStatementCompiler>();
+                if (threadStatementCompiler != null)
+                    threadStatementCompiler.CompileDispatchTable(writer);
             }
         }
 
@@ -158,41 +148,7 @@ namespace EV3BasicCompiler
         {
             foreach (Statement statement in statements)
             {
-                CompileCodeForStatement(writer, statement);
-            }
-        }
-
-        private void CompileCodeForStatement(TextWriter writer, Statement statement)
-        {
-            if (statement is AssignmentStatement)
-            {
-                CompileCodeForAssignmentStatement(writer, (AssignmentStatement)statement);
-            }
-        }
-
-        private void CompileCodeForAssignmentStatement(TextWriter writer, AssignmentStatement assignmentStatement)
-        {
-            if (assignmentStatement.LeftValue is PropertyExpression)
-            {
-                PropertyExpression propertyExpression = (PropertyExpression)assignmentStatement.LeftValue;
-                if (propertyExpression.FullName().Equals("Thread.Run", StringComparison.InvariantCultureIgnoreCase))
-                {
-                    int label = GetLabelNumber();
-                    string thread = assignmentStatement.RightValue.ToString().ToUpper();
-                    writer.WriteLine("    DATA32 tmp" + label);
-                    writer.WriteLine("    CALL GETANDINC32 RUNCOUNTER_" + thread + " 1  RUNCOUNTER_" + thread + " tmp" + label);
-                    writer.WriteLine("    JR_NEQ32 0 tmp" + label + " alreadylaunched" + label);
-                    writer.WriteLine("    OBJECT_START T" + thread);
-                    writer.WriteLine("  alreadylaunched" + label + ":");
-                }
-                else
-                {
-
-                }
-            }
-            else
-            {
-                variables.CompileCodeForAssignmentStatement(writer, assignmentStatement);
+                statement.Compiler().Compile(writer);
             }
         }
 
@@ -204,11 +160,6 @@ namespace EV3BasicCompiler
             writer.WriteLine("    READ32 RETURNSTACK STACKPOINTER INDEX");
             writer.WriteLine("    JR_DYNAMIC INDEX");
             writer.WriteLine($"ENDSUB_{name}:");
-        }
-
-        private int GetLabelNumber()
-        {
-            return nextLabel++;
         }
     }
 }

@@ -17,50 +17,57 @@ namespace EV3BasicCompiler
 
         public static void AttachCompilers(this Parser parser, EV3CompilerContext context)
         {
-            foreach (Statement statement in parser.GetStatements())
-                statement.AttachCompiler(context);
             foreach (SBExpression expression in parser.GetExpressions())
                 expression.AttachCompiler(context);
+            foreach (Statement statement in parser.GetStatements())
+                statement.AttachCompiler(context);
         }
 
         private static void AttachCompiler(this Statement statement, EV3CompilerContext context)
         {
             if (statement is AssignmentStatement)
             {
-                statement.AttachCompiler(new AssignmentStatementCompiler());
+                AssignmentStatement assignmentStatement = (AssignmentStatement)statement;
+
+                PropertyExpressionCompiler propertyExpressionCompiler = assignmentStatement.LeftValue.Compiler<PropertyExpressionCompiler>();
+                if (propertyExpressionCompiler != null && propertyExpressionCompiler.Value.Equals("Thread.Run", StringComparison.InvariantCultureIgnoreCase))
+                    statement.AttachCompiler(new ThreadStatementCompiler(assignmentStatement, context));
+                else
+                    statement.AttachCompiler(new AssignmentStatementCompiler(assignmentStatement, context));
             }
             else if (statement is ElseIfStatement)
-            {
-            }
+                statement.AttachCompiler(new DummyStatementCompiler(statement, context));
             else if (statement is EmptyStatement)
-            {
-            }
+                statement.AttachCompiler(new EmptyStatementCompiler((EmptyStatement)statement, context));
             else if (statement is ForStatement)
-            {
-            }
+                statement.AttachCompiler(new DummyStatementCompiler(statement, context));
             else if (statement is GotoStatement)
-            {
-            }
+                statement.AttachCompiler(new DummyStatementCompiler(statement, context));
             else if (statement is IfStatement)
-            {
-            }
+                statement.AttachCompiler(new DummyStatementCompiler(statement, context));
             else if (statement is IllegalStatement)
-            {
-            }
+                statement.AttachCompiler(new DummyStatementCompiler(statement, context));
             else if (statement is MethodCallStatement)
-            {
-            }
+                statement.AttachCompiler(new MethodCallStatementCompiler((MethodCallStatement)statement, context));
             else if (statement is SubroutineCallStatement)
-            {
-            }
+                statement.AttachCompiler(new DummyStatementCompiler(statement, context));
             else if (statement is SubroutineStatement)
-            {
-            }
+                statement.AttachCompiler(new DummyStatementCompiler(statement, context));
             else if (statement is WhileStatement)
-            {
-            }
+                statement.AttachCompiler(new DummyStatementCompiler(statement, context));
             else
                 throw new Exception("Unknown statement " + statement.GetType().Name);
+        }
+
+        class DummyStatementCompiler : StatementCompiler<Statement>  // TODO: remove this
+        {
+            public DummyStatementCompiler(Statement statement, EV3CompilerContext context) : base(statement, context)
+            {
+            }
+
+            public override void Compile(TextWriter writer)
+            {
+            }
         }
 
         private static void AttachCompiler(this Statement statement, IStatementCompiler compiler)
@@ -111,6 +118,11 @@ namespace EV3BasicCompiler
             return statementCompilers[statement];
         }
 
+        public static T Compiler<T>(this Statement statement) where T : class, IStatementCompiler
+        {
+            return statementCompilers[statement] as T;
+        }
+
         public static bool HasCompiler(this SBExpression expression)
         {
             return expressionCompilers.ContainsKey(expression);
@@ -126,10 +138,6 @@ namespace EV3BasicCompiler
             return expressionCompilers[expression] as T;
         }
 
-        public static void Compile(this Parser parser, TextWriter writer)
-        {
-        }
-
         public static IEnumerable<T> GetStatements<T>(this Parser parser) where T : Statement
         {
             return parser.GetStatements().OfType<T>();
@@ -139,48 +147,58 @@ namespace EV3BasicCompiler
         {
             if (parser.ParseTree == null) return new Statement[0];
 
-            return parser.ParseTree.Concat(parser.ParseTree.GetSubStatements());
+            return parser.ParseTree.GetStatements();
         }
 
-        private static IEnumerable<Statement> GetSubStatements(this List<Statement> statements)
+        public static IEnumerable<Statement> GetStatements(this IEnumerable<Statement> statements)
         {
-            return statements.OfType<SubroutineStatement>().GetSubStatements()
-                .Concat(statements.OfType<IfStatement>().GetSubStatements())
-                .Concat(statements.OfType<ElseIfStatement>().GetSubStatements())
-                .Concat(statements.OfType<ForStatement>().GetSubStatements())
-                .Concat(statements.OfType<WhileStatement>().GetSubStatements());
+            foreach (Statement statement in statements)
+            {
+                yield return statement;
+                foreach (Statement subStatement in statement.GetSubStatements())
+                {
+                    yield return subStatement;
+                }
+            }
         }
 
-        private static IEnumerable<Statement> GetSubStatements(this IEnumerable<IfStatement> statements)
+        private static IEnumerable<Statement> GetSubStatements(this Statement statement)
         {
-            return statements.SelectMany(s => s.ThenStatements.GetSubStatements())
-                .Concat(statements.SelectMany(s => s.ElseIfStatements.GetSubStatements()))
-                .Concat(statements.SelectMany(s => s.ElseStatements.GetSubStatements()));
-        }
-
-        private static IEnumerable<Statement> GetSubStatements(this IEnumerable<ElseIfStatement> statements)
-        {
-            return statements.SelectMany(s => s.ThenStatements.GetSubStatements());
-        }
-
-        private static IEnumerable<Statement> GetSubStatements(this IEnumerable<ForStatement> statements)
-        {
-            return statements.SelectMany(s => s.ForBody.GetSubStatements());
-        }
-
-        private static IEnumerable<Statement> GetSubStatements(this IEnumerable<WhileStatement> statements)
-        {
-            return statements.SelectMany(s => s.WhileBody.GetSubStatements());
-        }
-
-        private static IEnumerable<Statement> GetSubStatements(this IEnumerable<SubroutineStatement> statements)
-        {
-            return statements.SelectMany(s => s.SubroutineBody.GetSubStatements());
+            if (statement is IfStatement)
+            {
+                IfStatement ifStatement = (IfStatement)statement;
+                return ifStatement.ThenStatements.GetStatements()
+                    .Concat(ifStatement.ElseIfStatements.GetStatements())
+                    .Concat(ifStatement.ElseStatements.GetStatements());
+            }
+            else if (statement is ElseIfStatement)
+            {
+                ElseIfStatement elseIfStatement = (ElseIfStatement)statement;
+                return elseIfStatement.ThenStatements.GetStatements();
+            }
+            else if (statement is ForStatement)
+            {
+                ForStatement forStatement = (ForStatement)statement;
+                return forStatement.ForBody.GetStatements();
+            }
+            else if (statement is WhileStatement)
+            {
+                WhileStatement whileStatement = (WhileStatement)statement;
+                return whileStatement.WhileBody.GetStatements();
+            }
+            else if (statement is SubroutineStatement)
+            {
+                SubroutineStatement subroutineStatement = (SubroutineStatement)statement;
+                return subroutineStatement.SubroutineBody.GetStatements();
+            }
+            return new Statement[0];
         }
 
         public static IEnumerable<SBExpression> GetExpressions(this Parser parser)
         {
-            IEnumerable<SBExpression> expressions = parser.GetStatements<AssignmentStatement>().SelectMany(s => new SBExpression[] { s.LeftValue, s.RightValue });
+            IEnumerable<SBExpression> expressions = parser
+                .GetStatements<AssignmentStatement>().SelectMany(s => new SBExpression[] { s.LeftValue, s.RightValue })
+                .Concat(parser.GetStatements<MethodCallStatement>().Select(s => s.MethodCallExpression));
             return expressions.Concat(expressions.GetSubExpressions());
         }
 
@@ -199,18 +217,22 @@ namespace EV3BasicCompiler
             else if (expression is BinaryExpression)
             {
                 BinaryExpression binaryExpression = (BinaryExpression)expression;
-                return new SBExpression[] { binaryExpression.LeftHandSide }
+                return new SBExpression[] { binaryExpression.LeftHandSide, binaryExpression.RightHandSide }
                     .Concat(binaryExpression.LeftHandSide.GetSubExpressions())
-                    .Concat(new SBExpression[] { binaryExpression.RightHandSide })
                     .Concat(binaryExpression.RightHandSide.GetSubExpressions());
             }
             else if (expression is ArrayExpression)
             {
                 ArrayExpression arrayExpression = (ArrayExpression)expression;
-                return new SBExpression[] { arrayExpression.LeftHand }
+                return new SBExpression[] { arrayExpression.LeftHand, arrayExpression.Indexer }
                     .Concat(arrayExpression.LeftHand.GetSubExpressions())
-                    .Concat(new SBExpression[] { arrayExpression.Indexer })
                     .Concat(arrayExpression.Indexer.GetSubExpressions());
+            }
+            else if (expression is MethodCallExpression)
+            {
+                MethodCallExpression methodCallExpression = (MethodCallExpression)expression;
+                return methodCallExpression.Arguments
+                    .Concat(methodCallExpression.Arguments.SelectMany(a => a.GetSubExpressions()));
             }
             else
                 return new SBExpression[0];
@@ -219,88 +241,6 @@ namespace EV3BasicCompiler
         public static IEnumerable<T> GetExpressions<T>(this Parser parser) where T : SBExpression
         {
             return parser.GetExpressions().OfType<T>();
-        }
-
-        public static SBExpression SimplifyExpression(this SBExpression expression)
-        {
-            SBExpression simplifiedExpression = expression;
-            if (simplifiedExpression is BinaryExpression)
-            {
-                BinaryExpression binaryExpression = (BinaryExpression)simplifiedExpression;
-                SBExpression leftExpression = binaryExpression.LeftHandSide.SimplifyExpression();
-                SBExpression rightExpression = binaryExpression.RightHandSide.SimplifyExpression();
-                if (leftExpression.IsLiteral() && rightExpression.IsLiteral())
-                {
-                    TokenType tokenType = TokenType.Illegal;
-                    Token token = Token.Illegal;
-                    string text = string.Empty;
-
-                    if (leftExpression.IsNumericLiteral() && rightExpression.IsNumericLiteral())
-                    {
-                        tokenType = TokenType.NumericLiteral;
-                        token = Token.NumericLiteral;
-                        switch (binaryExpression.Operator.Token)
-                        {
-                            case Token.Addition:
-                                text = SmallBasicExtensions.FormatFloat(SmallBasicExtensions.ParseFloat(leftExpression.ToString()) + SmallBasicExtensions.ParseFloat(rightExpression.ToString()));
-                                break;
-                            case Token.Subtraction:
-                                text = SmallBasicExtensions.FormatFloat(SmallBasicExtensions.ParseFloat(leftExpression.ToString()) - SmallBasicExtensions.ParseFloat(rightExpression.ToString()));
-                                break;
-                            case Token.Division:
-                                text = SmallBasicExtensions.FormatFloat(SmallBasicExtensions.ParseFloat(leftExpression.ToString()) / SmallBasicExtensions.ParseFloat(rightExpression.ToString()));
-                                break;
-                            case Token.Multiplication:
-                                text = SmallBasicExtensions.FormatFloat(SmallBasicExtensions.ParseFloat(leftExpression.ToString()) * SmallBasicExtensions.ParseFloat(rightExpression.ToString()));
-                                break;
-                            //case Token.And:
-                            //case Token.Or:
-                            //case Token.LessThan:
-                            //case Token.LessThanEqualTo:
-                            //case Token.GreaterThan:
-                            //case Token.GreaterThanEqualTo:
-                            //case Token.NotEqualTo:
-                            default:
-                                tokenType = TokenType.Illegal;
-                                token = Token.Illegal;
-                                break;
-                        }
-                    }
-                    else if (!leftExpression.IsNumericLiteral() && !rightExpression.IsNumericLiteral())
-                    {
-                        if (binaryExpression.Operator.Token == Token.Addition)
-                        {
-                            tokenType = TokenType.StringLiteral;
-                            token = Token.StringLiteral;
-                            text = '"' + leftExpression.ToString().Trim('"') + rightExpression.ToString().Trim('"') + '"';
-                        }
-                    }
-                    TokenInfo tokenInfo = new TokenInfo
-                    {
-                        Line = binaryExpression.LeftHandSide.StartToken.Line,
-                        Column = binaryExpression.LeftHandSide.StartToken.Column,
-                        TokenType = tokenType,
-                        Token = token,
-                        Text = text
-                    };
-                    if (tokenType != TokenType.Illegal)
-                        simplifiedExpression = new LiteralExpression
-                        {
-                            StartToken = tokenInfo,
-                            EndToken = tokenInfo,
-                            Precedence = binaryExpression.Precedence,
-                            Literal = tokenInfo
-                        };
-                }
-                else if (leftExpression != binaryExpression.LeftHandSide || rightExpression != binaryExpression.RightHandSide)
-                {
-                    binaryExpression.LeftHandSide = leftExpression;
-                    binaryExpression.RightHandSide = rightExpression;
-                }
-            }
-            if (simplifiedExpression != expression)
-                simplifiedExpression.AttachCompiler(expression.Compiler().Context);
-            return simplifiedExpression;
         }
 
         public static string Dump(this Parser parser)
@@ -326,7 +266,7 @@ namespace EV3BasicCompiler
             s.WriteLine("TREE:");
             foreach (Statement statement in parser.ParseTree)
             {
-                s.WriteLine($"{statement.GetType().Name}:{statement.ToString().Trim('\n', '\r')}");
+                s.WriteLine($"{statement.GetType().Name}:{statement.ToString().Trim('\n', '\r')} --> {(statement.HasCompiler() ? statement.Compiler().ToString() : "NO COMPILER")}");
                 if (statement is EmptyStatement)
                 {
                     s.WriteLine($"-----> Comment: {((EmptyStatement)statement).EndingComment.Dump()}");
@@ -345,6 +285,11 @@ namespace EV3BasicCompiler
                     }
                     s.WriteLine($"-----> RIGHT: {rightValue.Dump()}");
                     DumpValueExpression(s, rightValue);
+                }
+                else if (statement is MethodCallStatement)
+                {
+                    s.WriteLine($"-----> Expression: {((MethodCallStatement)statement).MethodCallExpression.Dump()}");
+                    DumpValueExpression(s, ((MethodCallStatement)statement).MethodCallExpression);
                 }
                 else if (statement is ForStatement)
                 {
