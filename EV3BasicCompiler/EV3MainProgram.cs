@@ -16,7 +16,7 @@ namespace EV3BasicCompiler
     {
         private Parser parser;
         private EV3Variables variables;
-        private readonly List<string> threads;
+        private List<ThreadStatementCompiler> threadCompilers;
         private readonly List<EV3SubDefinition> subroutines;
 
         public List<Error> Errors { get; private set; }
@@ -26,7 +26,6 @@ namespace EV3BasicCompiler
             this.parser = parser;
             this.variables = variables;
 
-            threads = new List<string>();
             subroutines = new List<EV3SubDefinition>();
 
             Errors = new List<Error>();
@@ -36,7 +35,6 @@ namespace EV3BasicCompiler
 
         public void Clear()
         {
-            threads.Clear();
             subroutines.Clear();
             Errors.Clear();
         }
@@ -49,10 +47,7 @@ namespace EV3BasicCompiler
 
         private void ProcessThreads()
         {
-            foreach (AssignmentStatement statement in parser.GetStatements<AssignmentStatement>().Where(s => s.LeftValue.ToString().Equals("Thread.Run")))
-            {
-                threads.Add(statement.RightValue.ToString().ToUpper());
-            }
+            threadCompilers = parser.GetStatements<AssignmentStatement>().Select(s => s.Compiler()).OfType<ThreadStatementCompiler>().ToList();
         }
 
         private void ProcessSubroutines()
@@ -70,49 +65,26 @@ namespace EV3BasicCompiler
 
         public void CompileCodeForRunCounterStorageDeclarations(TextWriter writer)
         {
-            foreach (string thread in threads)
-            {
-                writer.WriteLine("DATA32 RUNCOUNTER_" + thread);
-            }
+            foreach (ThreadStatementCompiler threadStatementCompiler in threadCompilers)
+                threadStatementCompiler.CompileDeclaration(writer);
         }
 
         public void CompileCodeForRunCounterStorageInitialization(TextWriter writer)
         {
-            foreach (string thread in threads)
-            {
-                writer.WriteLine("    MOVE32_32 0 RUNCOUNTER_" + thread);
-            }
+            foreach (ThreadStatementCompiler threadStatementCompiler in threadCompilers)
+                threadStatementCompiler.CompileInitialization(writer);
         }
 
         public void CompileCodeForThreads(TextWriter writer)
         {
-            for (int i = 0; i < threads.Count; i++)
-            {
-                string thread = threads[i];
-                writer.WriteLine("vmthread " + "T" + thread);
-                writer.WriteLine("{");
-                // launch program with proper subprogram selector and correct local data area
-                writer.WriteLine("    DATA32 tmp");
-                writer.WriteLine("  launch:");
-                writer.WriteLine("    CALL PROGRAM_" + thread + " " + i);
-                writer.WriteLine("    CALL GETANDINC32 RUNCOUNTER_" + thread + " -1 RUNCOUNTER_" + thread + " tmp");
-                // after this position in the code, the flag could be 0 and another thread could 
-                // newly trigger this thread. this causes no problems, because this thread was 
-                // in process of terminating anyway and would not have called the worker method
-                // again. if it is now instead re-activated, it will immediately start at the
-                // begining.
-                writer.WriteLine("    JR_GT32 tmp 1 launch");
-                writer.WriteLine("}");
-                //memorize_reference("GETANDINC32");
-            }
+            foreach (ThreadStatementCompiler threadStatementCompiler in threadCompilers)
+                threadStatementCompiler.CompileThreadCode(writer);
         }
 
         public void CompileCodeForThreadPrograms(TextWriter writer)
         {
-            foreach (String thread in threads)
-            {
-                writer.WriteLine("subcall PROGRAM_" + thread);
-            }
+            foreach (ThreadStatementCompiler threadStatementCompiler in threadCompilers)
+                threadStatementCompiler.CompileProgram(writer);
         }
 
         public void CompileCodeForMainProgram(TextWriter writer)
@@ -120,19 +92,15 @@ namespace EV3BasicCompiler
             using (StringWriter mainProgram = new StringWriter())
             {
                 CompileCodeForStatements(mainProgram, parser.ParseTree.Where(s => !(s is SubroutineStatement)));
-                CompileCodeForThreadDispatchTable(writer, parser.ParseTree.OfType<AssignmentStatement>());
+                CompileCodeForThreadDispatchTable(writer);
                 writer.Write(mainProgram);
             }
         }
 
-        private void CompileCodeForThreadDispatchTable(TextWriter writer, IEnumerable<AssignmentStatement> statements)
+        private void CompileCodeForThreadDispatchTable(TextWriter writer)
         {
-            foreach (AssignmentStatement assignmentStatement in statements)
-            {
-                ThreadStatementCompiler threadStatementCompiler = assignmentStatement.Compiler<ThreadStatementCompiler>();
-                if (threadStatementCompiler != null)
-                    threadStatementCompiler.CompileDispatchTable(writer);
-            }
+            foreach (ThreadStatementCompiler threadStatementCompiler in threadCompilers)
+                threadStatementCompiler.CompileDispatchTable(writer);
         }
 
         public void CompileCodeForSubroutines(TextWriter writer)
