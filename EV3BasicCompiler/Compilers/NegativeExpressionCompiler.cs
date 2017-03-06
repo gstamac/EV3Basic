@@ -32,6 +32,8 @@ namespace EV3BasicCompiler.Compilers
             isLiteral = ParentExpression.Expression.Compiler().IsLiteral;
         }
 
+        protected override void CalculateCanCompileBoolean() => canCompileBoolean = false;
+
         public override string Compile(TextWriter writer, IEV3Variable variable)
         {
             if (IsLiteral)

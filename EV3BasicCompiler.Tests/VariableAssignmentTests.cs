@@ -123,6 +123,21 @@ namespace EV3BasicCompiler.Tests
         }
 
         [TestMethod]
+        public void ShouldAssignFloatArray_WithReferenceFormulaIndexer_NoBoundsCheck()
+        {
+            TestIt(@"
+                'PRAGMA NOBOUNDSCHECK
+                j = 3
+                i[j + 4] = 2
+            ", @"
+                MOVEF_F 3.0 VJ
+                ADDF VJ 4.0 F0
+                MOVEF_32 F0 INDEX
+                ARRAY_WRITE VI INDEX 2.0
+            ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
         public void ShouldAssignStringArray()
         {
             TestIt(@"
@@ -168,9 +183,9 @@ namespace EV3BasicCompiler.Tests
         public void ShouldAssignFloat_WhenAssignedWithFormulaMultiple()
         {
             TestIt(@"
-                i = (10 - 8) * 3 + 6
+                i = (10 - 8) * 3 + 6 / 2
             ", @"
-                MOVEF_F 12.0 VI
+                MOVEF_F 9.0 VI
             ", ExtractMainProgramCode);
         }
 
@@ -312,7 +327,6 @@ namespace EV3BasicCompiler.Tests
         }
 
         [TestMethod]
-        [Ignore]
         public void ShouldAssignFloat_WhenAssignedWithReferenceFormulaSimpleDivision()
         {
             TestIt(@"
@@ -329,7 +343,6 @@ namespace EV3BasicCompiler.Tests
         }
 
         [TestMethod]
-        [Ignore]
         public void ShouldAssignFloat_WhenAssignedWithReferenceFormulaMultipleDivisions()
         {
             TestIt(@"
@@ -378,7 +391,6 @@ namespace EV3BasicCompiler.Tests
         }
 
         [TestMethod]
-        [Ignore]
         public void ShouldAssignFloat_WhenAssignedWithReferenceFormulaMultiple()
         {
             TestIt(@"
@@ -390,13 +402,13 @@ namespace EV3BasicCompiler.Tests
                 MOVEF_F 10.3 VI             
                 MOVEF_F 3.0 VJ              
                 MOVEF_F 5.3 VK              
-                SUBF VI VJ F1               
-                MULF F1 VK F0               
-                DATAF tmpf2                 
-                DATA8 flag2                 
-                DIVF F0 VI tmpf2            
-                CP_EQF 0.0 VI flag2                   
-                SELECTF flag2 0.0 tmpf2 VL
+                SUBF VI VJ F0               
+                MULF F0 VK F1               
+                DATAF tmpf0
+                DATA8 flag0                 
+                DIVF F1 VI tmpf0            
+                CP_EQF 0.0 VI flag0                   
+                SELECTF flag0 0.0 tmpf0 VL
             ", ExtractMainProgramCode);
         }
 
@@ -421,7 +433,6 @@ namespace EV3BasicCompiler.Tests
         }
 
         [TestMethod]
-        [Ignore]
         public void ShouldAssignFloat_WhenAssignedWithReferenceFormulaMultipleWithNegative()
         {
             TestIt(@"
@@ -433,14 +444,14 @@ namespace EV3BasicCompiler.Tests
                 MOVEF_F 10.3 VI
                 MOVEF_F 3.0 VJ
                 MOVEF_F 5.3 VK
-                SUBF VI VJ F1
-                MATH NEGATE VK F2
-                MULF F1 F2 F0
-                DATAF tmpf3
-                DATA8 flag3
-                DIVF F0 VI tmpf3
-                CP_EQF 0.0 VI flag3
-                SELECTF flag3 0.0 tmpf3 VL
+                SUBF VI VJ F0
+                MATH NEGATE VK F1
+                MULF F0 F1 F2
+                DATAF tmpf0
+                DATA8 flag0
+                DIVF F2 VI tmpf0
+                CP_EQF 0.0 VI flag0
+                SELECTF flag0 0.0 tmpf0 VL
             ", ExtractMainProgramCode);
         }
 
@@ -478,6 +489,20 @@ namespace EV3BasicCompiler.Tests
         }
 
         [TestMethod]
+        public void ShouldAssignFloat_WhenAssignedWithIndexedReference_NoBoundsCheck()
+        {
+            TestIt(@"
+                'PRAGMA NOBOUNDSCHECK
+
+                i[2] = 10.3
+                j = i[2]
+            ", @"
+                ARRAY_WRITE VI 2 10.3
+                ARRAY_READ VI 2 VJ
+            ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
         public void ShouldAssignFloat_WhenAssignedWithIndexedReferenceFormula()
         {
             TestIt(@"
@@ -487,6 +512,22 @@ namespace EV3BasicCompiler.Tests
                 CALL ARRAYSTORE_FLOAT 2.0 10.3 VI 
                 CALL ARRAYGET_FLOAT 1.0 F0 VI     
                 CALL ARRAYGET_FLOAT 2.0 F1 VI                   
+                ADDF F0 F1 VJ
+            ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
+        public void ShouldAssignFloat_WhenAssignedWithIndexedReferenceFormula_NoBoundsCheck()
+        {
+            TestIt(@"
+                'PRAGMA NOBOUNDSCHECK
+
+                i[2] = 10.3
+                j = i[1] + i[2]
+            ", @"
+                ARRAY_WRITE VI 2 10.3
+                ARRAY_READ VI 1 F0
+                ARRAY_READ VI 2 F1
                 ADDF F0 F1 VJ
             ", ExtractMainProgramCode);
         }
@@ -504,6 +545,30 @@ namespace EV3BasicCompiler.Tests
                 ADDF VK 1.0 F0                     
                 CALL ARRAYGET_FLOAT F0 VJ VI                                                          
             ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
+        public void ShouldAssignFloat_WithReferenceFormulaIndexer_NoBoundsCheck()   // NEW!!!!! Fixed bug?
+        {
+            TestIt(@"
+                'PRAGMA NOBOUNDSCHECK
+
+                k = 3
+                i[2] = 10.3
+                j = i[k + 1]
+            ", @"
+                MOVEF_F 3.0 VK
+                ARRAY_WRITE VI 2 10.3
+                ADDF VK 1.0 F0
+                MOVEF_32 F0 INDEX
+                ARRAY_READ VI INDEX VJ
+            ", ExtractMainProgramCode);
+                // PREVIOUS
+                //MOVEF_F 3.0 VK
+                //ARRAY_WRITE VI 2 10.3
+                //ADDF VK 1.0 VJ
+                //MOVEF_32 VJ INDEX
+                //ARRAY_READ VI INDEX VJ
         }
 
         [TestMethod]
@@ -531,6 +596,20 @@ namespace EV3BasicCompiler.Tests
         }
 
         [TestMethod]
+        public void ShouldAssignString_WhenAssignedWithIndexedReference_NoBoundsCheck()
+        {
+            TestIt(@"
+                'PRAGMA NOBOUNDSCHECK
+
+                i[2] = ""X""
+                j = i[1]
+            ", @"
+                CALL ARRAYSTORE_STRING 2.0 'X' VI
+                CALL ARRAYGET_STRING 1.0 VJ VI
+            ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
         public void ShouldAssignString_WhenAssignedWithReferenceFormula()
         {
             TestIt(@"
@@ -553,6 +632,22 @@ namespace EV3BasicCompiler.Tests
                 CALL ARRAYGET_STRING 1.0 S0 VI      
                 CALL ARRAYGET_STRING 2.0 S1 VI                          
                 CALL TEXT.APPEND S0 S1 VJ  
+            ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
+        public void ShouldAssignString_WhenAssignedWithIndexedReferenceFormula_NoBoundsCheck()
+        {
+            TestIt(@"
+                'PRAGMA NOBOUNDSCHECK
+
+                i[23] = ""X""
+                j = i[1] + i[2]
+            ", @"
+                CALL ARRAYSTORE_STRING 23.0 'X' VI
+                CALL ARRAYGET_STRING 1.0 S0 VI
+                CALL ARRAYGET_STRING 2.0 S1 VI
+                CALL TEXT.APPEND S0 S1 VJ
             ", ExtractMainProgramCode);
         }
 
@@ -608,6 +703,55 @@ namespace EV3BasicCompiler.Tests
         }
 
         [TestMethod]
+        public void ShouldAssignFloatArray_WhenAssignedFromExternalFunction()
+        {
+            TestIt(@"
+                A[1] = Math.GetRandomNumber(30000)
+            ", @"
+                CALL MATH.GETRANDOMNUMBER 30000.0 F0
+                CALL ARRAYSTORE_FLOAT 1.0 F0 VA
+            ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
+        public void ShouldAssignFloatArray_WhenAssignedWithOperation()
+        {
+            TestIt(@"
+                b = 2
+                A[1] = b - 1
+            ", @"
+                MOVEF_F 2.0 VB
+                SUBF VB 1.0 F0
+                CALL ARRAYSTORE_FLOAT 1.0 F0 VA
+            ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
+        public void ShouldAssignFloatArray_WhenAssignedFromExternalProperty()
+        {
+            TestIt(@"
+                A[1] = Buttons.Current
+            ", @"
+                CALL BUTTONS.CURRENT S0
+                CALL ARRAYSTORE_STRING 1.0 S0 VA
+            ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
+        public void ShouldAssignFloatArray_WhenAssignedFromInlineFunction()
+        {
+            TestIt(@"
+                A[1] = Mailbox.Receive(8)
+            ", @"
+                DATA8 no0
+                MOVEF_8 8.0 no0
+                MAILBOX_READY no0
+                MAILBOX_READ no0 252 1 S0
+                CALL ARRAYSTORE_STRING 1.0 S0 VA
+            ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
         public void ShouldAssignStringArray_WhenAssignedWithReference()
         {
             TestIt(@"
@@ -649,7 +793,6 @@ namespace EV3BasicCompiler.Tests
         }
 
         [TestMethod]
-        [Ignore]
         public void ShouldAssignStringArrayWithConvert_WhenAssignedWithFloat()  // NEW!!!!!
         {
             TestIt(@"
@@ -663,7 +806,6 @@ namespace EV3BasicCompiler.Tests
         }
 
         [TestMethod]
-        [Ignore]
         public void ShouldAssignStringArrayWithConvert_WhenAssignedWithFloatArray()  // NEW!!!!!
         {
             TestIt(@"
@@ -673,10 +815,146 @@ namespace EV3BasicCompiler.Tests
             ", @"
                 CALL ARRAYSTORE_STRING 2.0 'X' VI  
                 CALL ARRAYSTORE_FLOAT 1.0 10.0 VJ  
-                CALL ARRAYGET_FLOAT 1.0 VI F0                         
+                CALL ARRAYGET_FLOAT 1.0 F0 VJ
                 STRINGS VALUE_FORMATTED F0 '%g' 99 S0
                 CALL ARRAYSTORE_STRING 3.0 S0 VI   
             ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
+        public void ShouldAssignBoolean()
+        {
+            TestIt(@"
+                i = ""true""
+                i = ""false""
+            ", @"
+                STRINGS DUPLICATE 'true' VI 
+                STRINGS DUPLICATE 'false' VI
+            ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
+        [Ignore] // Not supported by parser
+        public void ShouldAssignBoolean_WhenConditionIsConstant()  // NEW!!!!!
+        {
+            TestIt(@"
+                i = 10 = 2
+                i = 10 > 2
+                i = 10 >= 2
+                i = 10 < 2
+                i = 10 <= 2
+                i = 10 <> 2
+                i = ""true"" And ""True""
+                i = ""False"" Or ""false""
+            ", @"
+                STRINGS DUPLICATE 'false' VI 
+                STRINGS DUPLICATE 'true' VI
+                STRINGS DUPLICATE 'true' VI 
+                STRINGS DUPLICATE 'false' VI
+                STRINGS DUPLICATE 'false' VI 
+                STRINGS DUPLICATE 'true' VI 
+                STRINGS DUPLICATE 'true' VI 
+                STRINGS DUPLICATE 'true' VI 
+                STRINGS DUPLICATE 'false' VI 
+            ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
+        [Ignore] // Not supported by parser
+        public void ShouldAssignBoolean_WhenConditionIsFloat()  // OLD!!!!!
+        {
+            TestIt(@"
+                j = 20
+                i = j = 2
+                i = j > 2
+                i = j >= 2
+                i = j < 2
+                i = j <= 2
+            ", @"
+                MOVEF_F 20.0 VJ        
+                CALL EQ_FLOAT VJ 2.0 VI
+                CALL GT VJ 2.0 VI      
+                CALL GE VJ 2.0 VI      
+                CALL LT VJ 2.0 VI      
+                CALL LE VJ 2.0 VI  
+            ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
+        [Ignore] // Not supported by parser
+        public void ShouldAssignBoolean_WhenConditionIsFloat_NotEqual() // OLD!!!!! fixed BUG
+        {
+            TestIt(@"
+                j = 20
+                i = j <> 2
+            ", @"
+                MOVEF_F 20.0 VJ        
+                CALL NE_FLOAT VJ 2.0 VI
+                CALL NE_FLOAT VJ 2.0 VI
+            ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
+        [Ignore] // Not supported by parser
+        public void ShouldAssignBoolean_WhenConditionIsString()  // OLD!!!!!
+        {
+            TestIt(@"
+                j = ""X""
+                i = j = ""Y""
+                i = j <> ""Y""
+            ", @"
+                STRINGS DUPLICATE 'X' VJ
+                CALL EQ_STRING VJ 'Y' VI
+                CALL NE_STRING VJ 'Y' VI
+            ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
+        [Ignore] // Not supported by parser
+        public void ShouldAssignBoolean_WhenConditionIsBoolean()  // OLD!!!!!
+        {
+            TestIt(@"
+                j = 10 
+                i = (j > 0) And ""true""
+                i = (j > 0) Or ""true""
+            ", @"
+                MOVEF_F 10.0 VJ
+                CALL GT VJ 0.0 S0          
+                CALL AND S0 'true' VI      
+                CALL GT VJ 0.0 S0                    
+                CALL OR S0 'true' VI
+            ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
+        public void ShouldFail_WhenUsingStringNotTrueOrFalse()
+        {
+            TestCompileFailure(@"
+                i = ""false"" Or ""Y""
+            ");
+            TestCompileFailure(@"
+                i = ""true"" And ""X""
+            ");
+        }
+
+        [TestMethod]
+        public void ShouldFail_WhenCombiningBooleanAndFloat() 
+        {
+            TestCompileFailure(@"
+                j = 10
+                i = (j > 0) And j
+                i = (j > 0) Or j
+            ");
+        }
+
+        [TestMethod]
+        public void ShouldFail_WhenCombiningStringAndFloatInBooleanExpression()
+        {
+            TestCompileFailure(@"
+                j = 10
+                i = ""X"" And j
+                i = ""Y"" Or j
+            ");
         }
 
         [TestMethod]
@@ -699,7 +977,14 @@ namespace EV3BasicCompiler.Tests
         }
 
         [TestMethod]
-        [Ignore]
+        public void ShouldFail_WhenReferencingUnknownExternalFunction()
+        {
+            TestCompileFailure(@"
+                raw = Sensor.ReadRawX(1, 8)
+            ", "Unknown method call to sensor.readrawx", 2, 23);
+        }
+
+        [TestMethod]
         public void ShouldAssignFloatWithConvert_WhenReferencingExternalFunction() // NEW!!!!!
         {
             TestIt(@"
@@ -707,7 +992,7 @@ namespace EV3BasicCompiler.Tests
                 raw = Sensor.ReadRawValue(1, 8)
             ", @"
                 STRINGS DUPLICATE 'X' VRAW
-                CALL SENSOR.READRAW 1.0 8.0 F0
+                CALL SENSOR.READRAWVALUE 1.0 8.0 F0
                 STRINGS VALUE_FORMATTED F0 '%g' 99 VRAW 
             ", ExtractMainProgramCode);
         }
@@ -723,12 +1008,25 @@ namespace EV3BasicCompiler.Tests
         }
 
         [TestMethod]
-        [Ignore]
+        public void ShouldFail_WhenReferencingUnknownExternalProperty()
+        {
+            TestCompileFailure(@"
+                i = Buttons.CurrentX
+            ", "Unknown property buttons.currentx", 2, 21);
+        }
+
+        [TestMethod]
         public void ShouldFail_WhenAssigningUnknownProperty()
         {
             TestCompileFailure(@"
                 Unknown.Property = 10
-            ", "Unknown property to set", 0, 0);
+            ", "Cannot assign value to this expression Unknown.Property", 2, 17);
+        }
+
+        [TestMethod]
+        public void OptimizeConstantAssignment()
+        {
+            Assert.IsTrue(false);
         }
     }
 }

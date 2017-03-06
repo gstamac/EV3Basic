@@ -60,18 +60,23 @@
     </When>
     <Otherwise>
       <ItemGroup>
-        <Reference Include="Microsoft.VisualStudio.QualityTools.UnitTestFramework" />
+        <Reference Include="Microsoft.VisualStudio.QualityTools.UnitTestFramework">
+          <Private>False</Private>
+        </Reference>
       </ItemGroup>
     </Otherwise>
   </Choose>
   <ItemGroup>
+    <Compile Include="ElseTests.cs" />
     <Compile Include="EV3CompilerTestsBase.cs" />
+    <Compile Include="IfElseIfTests.cs" />
     <Compile Include="LibraryTests.cs" />
     <Compile Include="LoopsTests.cs" />
     <Compile Include="MainProgramTests.cs" />
     <Compile Include="SmallBasicParserExtensionsTests.cs" />
     <Compile Include="SubroutinesTests.cs" />
     <Compile Include="ThreadTests.cs" />
+    <Compile Include="IfTests.cs" />
     <Compile Include="VariableAssignmentTests.cs" />
     <Compile Include="VariableDeclarationTests.cs" />
     <Compile Include="VariableInitializationTests.cs" />

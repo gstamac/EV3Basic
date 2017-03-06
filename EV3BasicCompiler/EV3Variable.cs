@@ -31,7 +31,7 @@ namespace EV3BasicCompiler
                 Ev3Name = $"V{Name.ToUpper()}";
             }
         }
-        public string Ev3Name { get; set; }
+        public string Ev3Name { get; private set; }
 
         public TokenInfo TokenInfo { get; set; }
         public EV3Type Type { get; set; }

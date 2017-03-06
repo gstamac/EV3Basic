@@ -51,6 +51,39 @@ namespace EV3BasicCompiler
             return expression.StartToken.TokenType == TokenType.NumericLiteral || expression.EndToken.TokenType == TokenType.NumericLiteral;
         }
 
+        public static bool IsBooleanOperator(this BinaryExpression binaryExpression)
+        {
+            switch (binaryExpression.Operator.Token)
+            {
+                //case Token.True:
+                //case Token.False:
+                case Token.And:
+                case Token.Or:
+                    return true;
+            }
+            return false;
+        }
+
+        public static bool IsBooleanCompareOperator(this BinaryExpression binaryExpression)
+        {
+            switch (binaryExpression.Operator.Token)
+            {
+                case Token.Equals:
+                case Token.NotEqualTo:
+                case Token.LessThan:
+                case Token.LessThanEqualTo:
+                case Token.GreaterThan:
+                case Token.GreaterThanEqualTo:
+                    return true;
+            }
+            return false;
+        }
+
+        public static string FormatBoolean(bool value)
+        {
+            return value ? "'true'" : "'false'";
+        }
+
         public static string FormatFloat(string value)
         {
             return FormatFloat(ParseFloat(value));

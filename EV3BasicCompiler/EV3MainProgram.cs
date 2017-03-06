@@ -14,19 +14,21 @@ namespace EV3BasicCompiler
 {
     public class EV3MainProgram
     {
-        private Parser parser;
-        private EV3Variables variables;
+        private readonly Parser parser;
+        private readonly EV3Variables variables;
+        private readonly EV3CompilerContext context;
         private List<ThreadStatementCompiler> threadCompilers;
-        private readonly List<EV3SubDefinition> subroutines;
+        private readonly List<EV3SubDefinitionBase> subroutines;
 
         public List<Error> Errors { get; private set; }
 
-        public EV3MainProgram(Parser parser, EV3Variables variables)
+        public EV3MainProgram(Parser parser, EV3Variables variables, EV3CompilerContext context)
         {
             this.parser = parser;
             this.variables = variables;
+            this.context = context;
 
-            subroutines = new List<EV3SubDefinition>();
+            subroutines = new List<EV3SubDefinitionBase>();
 
             Errors = new List<Error>();
 
@@ -52,13 +54,12 @@ namespace EV3BasicCompiler
 
         private void ProcessSubroutines()
         {
-            foreach (SubroutineStatement statement in parser.GetStatements<SubroutineStatement>())
+            foreach (SubroutineStatementCompiler compiler in parser.GetStatements<SubroutineStatement>().Select(s => s.Compiler<SubroutineStatementCompiler>()))
             {
-                string name = statement.SubroutineName.NormalizedText.ToUpper();
                 StringWriter code = new StringWriter();
-                CompileCodeForSubroutine(code, name, statement);
+                compiler.Compile(code);
 
-                EV3SubDefinition sub = new EV3SubDefinition(name, name, code.ToString());
+                EV3SubDefinition sub = new EV3SubDefinition(compiler.Ev3Name, compiler.Ev3Name, code.ToString());
                 subroutines.Add(sub);
             }
         }
@@ -91,7 +92,7 @@ namespace EV3BasicCompiler
         {
             using (StringWriter mainProgram = new StringWriter())
             {
-                CompileCodeForStatements(mainProgram, parser.ParseTree.Where(s => !(s is SubroutineStatement)));
+                parser.ParseTree.Where(s => !(s is SubroutineStatement)).Compile(mainProgram);
                 CompileCodeForThreadDispatchTable(writer);
                 writer.Write(mainProgram);
             }
@@ -105,29 +106,11 @@ namespace EV3BasicCompiler
 
         public void CompileCodeForSubroutines(TextWriter writer)
         {
-            foreach (EV3SubDefinition sub in subroutines)
+            foreach (EV3SubDefinitionBase sub in subroutines)
             {
                 writer.WriteLine();
-                writer.WriteLine($"SUB_{sub.Name}:");
-                writer.WriteLine(sub.Code);
-                writer.WriteLine($"ENDSUB_{sub.Name}:");
+                sub.Compile(writer, context, new string[0], null);
             }
-        }
-
-        private void CompileCodeForStatements(TextWriter writer, IEnumerable<Statement> statements)
-        {
-            foreach (Statement statement in statements)
-            {
-                statement.Compiler().Compile(writer);
-            }
-        }
-
-        private void CompileCodeForSubroutine(TextWriter writer, string name, SubroutineStatement statement)
-        {
-            CompileCodeForStatements(writer, statement.SubroutineBody);
-            writer.WriteLine("    SUB8 STACKPOINTER 1 STACKPOINTER");
-            writer.WriteLine("    READ32 RETURNSTACK STACKPOINTER INDEX");
-            writer.WriteLine("    JR_DYNAMIC INDEX");
         }
     }
 }

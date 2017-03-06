@@ -1,6 +1,6 @@
-﻿using System;
-using Microsoft.SmallBasic;
+﻿using Microsoft.SmallBasic;
 using System.Collections.Generic;
+using Microsoft.SmallBasic.Statements;
 
 namespace EV3BasicCompiler.Compilers
 {
@@ -47,14 +47,14 @@ namespace EV3BasicCompiler.Compilers
             return variables.FindVariable(name);
         }
 
-        public EV3SubDefinition FindSubroutine(string subroutineName)
+        public EV3Variable FindVariable(ForStatement forStatement)
         {
-            return library.FindSubroutine(subroutineName);
+            return variables.FindVariable(forStatement);
         }
 
-        public EV3SubDefinition FindInline(string subroutineName)
+        public EV3SubDefinitionBase FindSubroutine(string subroutineName)
         {
-            return library.FindInline(subroutineName);
+            return library.FindSubroutine(subroutineName);
         }
 
         public EV3Variables.TempVariableCreator UseTempVariables()

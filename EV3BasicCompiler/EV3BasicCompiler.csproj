@@ -22,6 +22,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -51,20 +52,34 @@
     <Compile Include="Compilers\BinaryExpressionCompiler.cs" />
     <Compile Include="Compiler.cs" />
     <Compile Include="Compilers\AssignmentStatementCompiler.cs" />
+    <Compile Include="Compilers\BinaryExpressionCompilerBase.cs" />
+    <Compile Include="Compilers\BooleanExpressionCompiler.cs" />
+    <Compile Include="Compilers\ComparisonExpressionCompiler.cs" />
+    <Compile Include="Compilers\ElseIfStatementCompiler.cs" />
     <Compile Include="Compilers\EmptyStatementCompiler.cs" />
     <Compile Include="Compilers\EV3CompilerContext.cs" />
     <Compile Include="Compilers\ExpressionCompiler.cs" />
+    <Compile Include="Compilers\ForStatementCompiler.cs" />
     <Compile Include="Compilers\IAssignmentExpressionCompiler.cs" />
+    <Compile Include="Compilers\IBooleanExpressionCompiler.cs" />
+    <Compile Include="Compilers\IConditionStatementCompiler.cs" />
     <Compile Include="Compilers\IExpressionCompiler.cs" />
+    <Compile Include="Compilers\IfStatementCompiler.cs" />
     <Compile Include="Compilers\IStatementCompiler.cs" />
     <Compile Include="Compilers\MethodCallStatementCompiler.cs" />
     <Compile Include="Compilers\StatementCompiler.cs" />
+    <Compile Include="Compilers\SubroutineCallStatementCompiler.cs" />
+    <Compile Include="Compilers\SubroutineStatementCompiler.cs" />
     <Compile Include="Compilers\ThreadStatementCompiler.cs" />
+    <Compile Include="Compilers\WhileStatementCompiler.cs" />
     <Compile Include="Error.cs" />
+    <Compile Include="EV3InlineDefinition.cs" />
     <Compile Include="EV3MainProgram.cs" />
     <Compile Include="EV3Compiler.cs" />
     <Compile Include="EV3Library.cs" />
+    <Compile Include="EV3SubcallDefinition.cs" />
     <Compile Include="EV3SubDefinition.cs" />
+    <Compile Include="EV3SubDefinitionBase.cs" />
     <Compile Include="EV3Variables.cs" />
     <Compile Include="EV3Type.cs" />
     <Compile Include="EV3Variable.cs" />

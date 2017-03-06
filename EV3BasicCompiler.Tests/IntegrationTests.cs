@@ -9,7 +9,7 @@ using System.Text;
 namespace EV3BasicCompiler.Tests
 {
     [TestClass]
-    [Ignore]
+    //[Ignore]
     public class IntegrationTests : EV3CompilerTestsBase
     {
         const string SOURCE_FILES_DIR = @"C:\Work\GitHub\EV3Basic\Examples";
@@ -163,6 +163,8 @@ namespace EV3BasicCompiler.Tests
 
         private void TestFile(string fileName, bool withDump)
         {
+            //if (!fileName.Equals("ActionLoop.sb")) return;
+
             if (!File.Exists(fileName))
                 fileName = Path.Combine(SOURCE_FILES_DIR, fileName);
 
@@ -171,10 +173,18 @@ namespace EV3BasicCompiler.Tests
             Console.WriteLine();
             Console.WriteLine($"=============> {Path.GetFileName(fileName)} <=============");
             Console.WriteLine();
-            string newCode = Compile(fileName, withDump);
-            string oldCode = CompileOld(fileName);
+            string newCode = NormalizeReferences(NormalizeInlineTemps(NormalizeTemps(NormalizeLabels(Compile(fileName, false)))));
+            string oldCode = NormalizeReferences(NormalizeInlineTemps(NormalizeTemps(NormalizeLabels(CompileOld(fileName)))));
 
-            newCode.Should().Be(oldCode);
+            if (withDump)
+            {
+                Console.WriteLine("======> COMPILED/EXPECTED CODE <======");
+                DumpCodeSideBySide(newCode, oldCode);
+                Console.WriteLine("======> END CODE <======");
+                Compile(fileName, true);
+            }
+
+            CleanupCode(newCode).Should().Be(CleanupCode(oldCode));
         }
 
         private string Compile(string fileName, bool withDump)
@@ -190,7 +200,7 @@ namespace EV3BasicCompiler.Tests
 
                 compiler.Errors.Should().BeEmpty();
 
-                return CleanupCode(writer.ToString());
+                return writer.ToString();
             }
         }
 
@@ -206,7 +216,7 @@ namespace EV3BasicCompiler.Tests
 
                 errors.Should().BeEmpty();
 
-                return CleanupCode(Encoding.ASCII.GetString(ofs.ToArray()));
+                return Encoding.ASCII.GetString(ofs.ToArray());
             }
         }
 

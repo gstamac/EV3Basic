@@ -4,7 +4,7 @@ using System.IO;
 
 namespace EV3BasicCompiler.Compilers
 {
-    public class IdentifierExpressionCompiler : ExpressionCompiler<IdentifierExpression>, IAssignmentExpressionCompiler
+    public class IdentifierExpressionCompiler : ExpressionCompiler<IdentifierExpression>, IAssignmentExpressionCompiler, IBooleanExpressionCompiler
     {
         public IdentifierExpressionCompiler(IdentifierExpression expression, EV3CompilerContext context) : base(expression, context)
         {
@@ -61,6 +61,16 @@ namespace EV3BasicCompiler.Compilers
                         break;
                 }
             }
+        }
+
+        public void CompileBranch(TextWriter writer, string label)
+        {
+            CompileBranchForStringVariable(writer, this, label, false);
+        }
+
+        public void CompileBranchNegated(TextWriter writer, string label)
+        {
+            CompileBranchForStringVariable(writer, this, label, true);
         }
 
         private string _variableName = null;

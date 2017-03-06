@@ -63,6 +63,5 @@ namespace EV3BasicCompiler.Tests
                 }
             ", ExtractFullMainProgramCode);
         }
-
     }
 }

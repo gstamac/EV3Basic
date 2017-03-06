@@ -1,4 +1,32 @@
 
+subcall EQ_STRING8       // SSF
+{
+	IN_S  a 252
+	IN_S  b 252
+	OUT_8 result
+	
+	// check if completely equal
+	STRINGS COMPARE a b result
+	JR_NEQ8 result 0 gotresult
+	// second chance: when both values are "True" in any casing, this also counts as equal
+	AND8888_32 a -538976289 a        // AND 0xdfdfdfdf performs an upcase for 4 letters
+    STRINGS COMPARE a 'TRUE' result
+	JR_EQ8 result 0 gotresult
+	AND8888_32 b -538976289 b        // AND 0xdfdfdfdf performs an upcase for 4 letters
+    STRINGS COMPARE b 'TRUE' result	
+gotresult:
+	RETURN
+}
+
+subcall IS_TRUE       // SF
+{
+	IN_S  c 252
+	OUT_8 result
+	
+	AND8888_32 a -538976289 a        // AND 0xdfdfdfdf performs an upcase for 4 letters
+    STRINGS COMPARE a 'TRUE' result
+	RETURN
+}
 
 subcall EQ_STRING       // SSS
 {
@@ -154,6 +182,27 @@ negativestep:
 	JR_LTEQF b a delivertrue
 deliverfalse:
 	STRINGS DUPLICATE 'False' result
+	RETURN
+}
+
+subcall LE_STEP8    // FFFF    
+// WHEN step>=0  :  result  <- "True" iff a <= b
+// ELSE          :  result  <- "True" iff a >= b
+{
+	IN_F a
+	IN_F b
+	IN_F step
+	OUT_8 result
+	
+	JR_LTF step 0.0 negativestep	
+	JR_GTF a b deliverfalse
+delivertrue:	
+	MOVE8_8 1 result	
+	RETURN	
+negativestep:
+	JR_LTEQF b a delivertrue
+deliverfalse:
+	MOVE8_8 0 result	
 	RETURN
 }
 

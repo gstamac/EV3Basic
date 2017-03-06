@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace EV3BasicCompiler.Compilers
 {
-    public class LiteralExpressionCompiler : ExpressionCompiler<LiteralExpression>
+    public class LiteralExpressionCompiler : ExpressionCompiler<LiteralExpression>, IBooleanExpressionCompiler
     {
         private int maxIndex;
 
@@ -66,6 +66,27 @@ namespace EV3BasicCompiler.Compilers
             }
 
             return Value;
+        }
+
+        protected override void CalculateBooleanValue()
+        {
+            booleanValue = "'true'".Equals(Value, StringComparison.InvariantCultureIgnoreCase);
+        }
+
+        public void CompileBranch(TextWriter writer, string label)
+        {
+            if (BooleanValue)
+            {
+                writer.WriteLine($"    JR {label}");
+            }
+        }
+
+        public void CompileBranchNegated(TextWriter writer, string label)
+        {
+            if (!BooleanValue)
+            {
+                writer.WriteLine($"    JR {label}");
+            }
         }
 
         public int MaxIndex

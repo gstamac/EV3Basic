@@ -7,7 +7,9 @@ namespace EV3BasicCompiler.Compilers
         EV3Type Type { get; }
         bool IsLiteral { get; }
         string Value { get; }
+        bool CanCompileBoolean { get; }
+        bool BooleanValue { get; }
         EV3CompilerContext Context { get; }
         string Compile(TextWriter writer, IEV3Variable variable);
-    }
+ }
 }

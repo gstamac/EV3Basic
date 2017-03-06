@@ -1,5 +1,14 @@
 // ---------------------------------------- BASIC MODULE: MATH ---------------------------------------
 
+inline MATH.DIVCHECK		// FFF
+{
+    DATAF tmpf:#
+	DATA8 flag:#
+	DIVF :0 :1 tmpf:#
+	CP_EQF 0.0 :1 flag:#
+	SELECTF flag:# 0.0 tmpf:# :2
+}
+
 inline MATH.PI              // F
 {
 	MOVEF_F 3.1415926535897932384 :0

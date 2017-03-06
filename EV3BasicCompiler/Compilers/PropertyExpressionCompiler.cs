@@ -4,7 +4,7 @@ using System.IO;
 
 namespace EV3BasicCompiler.Compilers
 {
-    public class PropertyExpressionCompiler : ExpressionCompiler<PropertyExpression>//, IAssignmentExpressionCompiler
+    public class PropertyExpressionCompiler : ExpressionCompiler<PropertyExpression>, IBooleanExpressionCompiler
     {
         public PropertyExpressionCompiler(PropertyExpression expression, EV3CompilerContext context) : base(expression, context)
         {
@@ -13,22 +13,27 @@ namespace EV3BasicCompiler.Compilers
         protected override void CalculateType()
         {
             string propertyName = ParentExpression.FullName().ToUpper();
-            EV3SubDefinition sub = Context.FindSubroutine(propertyName);
+            EV3SubDefinitionBase sub = Context.FindSubroutine(propertyName);
             if (sub != null)
                 type = sub.ReturnType;
         }
 
         protected override void CalculateValue()
         {
-            value = ParentExpression.FullName().ToUpper(); 
+            value = ParentExpression.FullName().ToUpper();
         }
 
         public override string Compile(TextWriter writer, IEV3Variable variable)
         {
-            EV3SubDefinition sub = Context.FindSubroutine(Value);
+            EV3SubDefinitionBase sub = Context.FindSubroutine(Value);
             if (sub != null)
             {
-                writer.WriteLine($"    CALL {Value} {variable.Ev3Name}");
+                using (var tempVariables = Context.UseTempVariables())
+                {
+                    if (variable.Type.IsArray() && !sub.ReturnType.IsArray())
+                        variable = tempVariables.CreateVariable(variable.Type.BaseType());
+                    return sub.Compile(writer, Context, new string[0], variable.Ev3Name);
+                }
             }
             else
                 AddError($"Unknown property {ParentExpression.FullName()}");
@@ -36,8 +41,14 @@ namespace EV3BasicCompiler.Compilers
             return variable.Ev3Name;
         }
 
-        public void CompileAssignment(TextWriter writer, string compiledValue, string outputName)
+        public void CompileBranch(TextWriter writer, string label)
         {
+            CompileBranchForStringVariable(writer, this, label, false);
+        }
+
+        public void CompileBranchNegated(TextWriter writer, string label)
+        {
+            CompileBranchForStringVariable(writer, this, label, true);
         }
     }
 }

@@ -99,6 +99,22 @@ namespace EV3BasicCompiler
             }
         }
 
+        public void CompileCodeForTempVariableDeclarationsFloat(TextWriter writer)
+        {
+            for (int i = 0; i <= tempVariablesMax[EV3Type.Float]; i++)
+            {
+                writer.WriteLine($"    DATAF F{i}");
+            }
+        }
+
+        public void CompileCodeForTempVariableDeclarationsString(TextWriter writer)
+        {
+            for (int i = 0; i <= tempVariablesMax[EV3Type.String]; i++)
+            {
+                writer.WriteLine($"    DATAS S{i} 252");
+            }
+        }
+
         public TempVariableCreator UseTempVariables()
         {
             return new TempVariableCreator(t => GetTempVariableId(t), t => RemoveTempVariable(t));
@@ -209,7 +225,7 @@ namespace EV3BasicCompiler
             return variables.Values.FirstOrDefault(v => expression.IsVariable(v));
         }
 
-        private EV3Variable FindVariable(ForStatement statement)
+        public EV3Variable FindVariable(ForStatement statement)
         {
             return variables.Values.FirstOrDefault(v => statement.IsVariable(v));
         }

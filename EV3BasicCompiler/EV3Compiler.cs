@@ -27,10 +27,11 @@ namespace EV3BasicCompiler
         {
             SBErrors = new List<SBError>();
             parser = new Parser(SBErrors);
+
             library = new EV3Library();
             variables = new EV3Variables(parser);
-            mainProgram = new EV3MainProgram(parser, variables);
             context = new EV3CompilerContext(variables, library);
+            mainProgram = new EV3MainProgram(parser, variables, context);
         }
 
         public List<Error> Errors { get { return context.Errors; } }
@@ -47,15 +48,13 @@ namespace EV3BasicCompiler
             LoadVariables();
             ProcessCode();
 
-            using (StringWriter tempWriter = new StringWriter())
-            {
-                GenerateMainThread(tempWriter);
-                GenerateThreads(tempWriter);
-                GeneratePrograms(tempWriter);
-                GenerateReferences(tempWriter);
-                GenerateInitialization(writer);
-                writer.Write(tempWriter.ToString());
-            }
+            string mainProgramCode = GenerateMainProgramCode();
+
+            GenerateInitialization(writer);
+            GenerateMainThread(writer);
+            GenerateThreads(writer);
+            GeneratePrograms(writer, mainProgramCode);
+            GenerateReferences(writer);
 
             context.Errors.AddRange(mainProgram.Errors);
             context.Errors.AddRange(library.Errors);
@@ -128,6 +127,15 @@ namespace EV3BasicCompiler
             mainProgram.Process();
         }
 
+        private string GenerateMainProgramCode()
+        {
+            using (StringWriter writer = new StringWriter())
+            {
+                mainProgram.CompileCodeForMainProgram(writer);
+                return writer.ToString();
+            }
+        }
+
         private void GenerateInitialization(TextWriter writer)
         {
             library.CompileCodeForGlobals(writer);
@@ -156,7 +164,7 @@ namespace EV3BasicCompiler
             mainProgram.CompileCodeForThreads(writer);
         }
 
-        private void GeneratePrograms(TextWriter writer)
+        private void GeneratePrograms(TextWriter writer, string mainProgramCode)
         {
             // create the code for the basic program (will be called from various threads)
             // multiple VM subcall objects will be created that share the same implementation, but
@@ -172,25 +180,16 @@ namespace EV3BasicCompiler
             // storage for variables for compiler use
             writer.WriteLine("    DATA32 INDEX");
             writer.WriteLine("    ARRAY8 STACKPOINTER 4");  // waste 4 bytes, but keep alignment
-            //// storage for temporary float variables
-            //for (int i = 0; maxreservedtemporaries.ContainsKey(ExpressionType.Number) && i < maxreservedtemporaries[ExpressionType.Number]; i++)
-            //{
-            //    writer.WriteLine("    DATAF F" + i);
-            //}
-            // storage for the return stack
+            variables.CompileCodeForTempVariableDeclarationsFloat(writer);
             writer.WriteLine("    ARRAY32 RETURNSTACK2 128");   // addressing the stack is done with an 8bit int.
             writer.WriteLine("    ARRAY32 RETURNSTACK 128");    // when it wrapps over from 127 to -128, the second 
             writer.WriteLine();                                 // part of the stack will be used (256 entries total)
-            //// storage for temporary string variables
-            //for (int i = 0; maxreservedtemporaries.ContainsKey(ExpressionType.Text) && i < maxreservedtemporaries[ExpressionType.Text]; i++)
-            //{
-            //    writer.WriteLine("    DATAS S" + i + " 252");
-            //}
+            variables.CompileCodeForTempVariableDeclarationsString(writer);
 
             // initialize the stack pointer
             writer.WriteLine("    MOVE8_8 0 STACKPOINTER");
 
-            mainProgram.CompileCodeForMainProgram(writer);
+            writer.Write(mainProgramCode);
 
             writer.WriteLine("ENDTHREAD:");
             writer.WriteLine("    RETURN");

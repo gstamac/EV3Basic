@@ -6,7 +6,7 @@ using System.IO;
 
 namespace EV3BasicCompiler.Compilers
 {
-    public class BinaryExpressionCompiler : ExpressionCompiler<BinaryExpression>
+    public class BinaryExpressionCompiler : BinaryExpressionCompilerBase
     {
         public BinaryExpressionCompiler(BinaryExpression expression, EV3CompilerContext context) : base(expression, context)
         {
@@ -31,31 +31,26 @@ namespace EV3BasicCompiler.Compilers
             {
                 if (LeftCompiler.Type.IsNumber() && RightCompiler.Type.IsNumber())
                 {
+                    float leftValue = SmallBasicExtensions.ParseFloat(LeftCompiler.Value);
+                    float rightValue = SmallBasicExtensions.ParseFloat(RightCompiler.Value);
                     switch (ParentExpression.Operator.Token)
                     {
                         case Token.Addition:
-                            value = SmallBasicExtensions.FormatFloat(SmallBasicExtensions.ParseFloat(LeftCompiler.Value) + SmallBasicExtensions.ParseFloat(RightCompiler.Value));
+                            value = SmallBasicExtensions.FormatFloat(leftValue + rightValue);
                             isLiteral = true;
                             break;
                         case Token.Subtraction:
-                            value = SmallBasicExtensions.FormatFloat(SmallBasicExtensions.ParseFloat(LeftCompiler.Value) - SmallBasicExtensions.ParseFloat(RightCompiler.Value));
+                            value = SmallBasicExtensions.FormatFloat(leftValue - rightValue);
                             isLiteral = true;
                             break;
                         case Token.Division:
-                            value = SmallBasicExtensions.FormatFloat(SmallBasicExtensions.ParseFloat(LeftCompiler.Value) / SmallBasicExtensions.ParseFloat(RightCompiler.Value));
+                            value = SmallBasicExtensions.FormatFloat(leftValue / rightValue);
                             isLiteral = true;
                             break;
                         case Token.Multiplication:
-                            value = SmallBasicExtensions.FormatFloat(SmallBasicExtensions.ParseFloat(LeftCompiler.Value) * SmallBasicExtensions.ParseFloat(RightCompiler.Value));
+                            value = SmallBasicExtensions.FormatFloat(leftValue * rightValue);
                             isLiteral = true;
                             break;
-                            //case Token.And:
-                            //case Token.Or:
-                            //case Token.LessThan:
-                            //case Token.LessThanEqualTo:
-                            //case Token.GreaterThan:
-                            //case Token.GreaterThanEqualTo:
-                            //case Token.NotEqualTo:
                     }
                 }
                 else if (!LeftCompiler.Type.IsNumber() && !RightCompiler.Type.IsNumber())
@@ -67,11 +62,6 @@ namespace EV3BasicCompiler.Compilers
                     }
                 }
             }
-        }
-
-        protected override void CalculateIsLiteral()
-        {
-            EnsureValue();
         }
 
         public override string Compile(TextWriter writer, IEV3Variable variable)
@@ -88,11 +78,11 @@ namespace EV3BasicCompiler.Compilers
             {
                 using (var tempVariables = Context.UseTempVariables())
                 {
-                    string leftValue = LeftCompiler.Compile(writer, tempVariables.CreateVariable(LeftCompiler.Type));
-                    string rightValue = RightCompiler.Compile(writer, tempVariables.CreateVariable(RightCompiler.Type));
+                    string leftValue = CompileWithConvert(writer, LeftCompiler, commonType, tempVariables);
+                    string rightValue = CompileWithConvert(writer, RightCompiler, commonType, tempVariables);
 
-                    leftValue = ConvertIfNeeded(writer, leftValue, LeftCompiler, commonType);
-                    rightValue = ConvertIfNeeded(writer, rightValue, RightCompiler, commonType);
+                    if (variable.Type.IsArray())
+                        variable = tempVariables.CreateVariable(variable.Type.BaseType());
 
                     if (Type.IsNumber())
                     {
@@ -106,7 +96,12 @@ namespace EV3BasicCompiler.Compilers
                                 break;
                             case Token.Division:
                                 if (Context.DoDivisionCheck)
-                                    writer.WriteLine("<NOT IMPLEMENTED YET>");
+                                {
+                                    var sub = Context.FindSubroutine("Math.DivCheck");
+                                    if (variable.Type.IsArray() && !sub.ReturnType.IsArray())
+                                        variable = tempVariables.CreateVariable(variable.Type.BaseType());
+                                    sub.Compile(writer, Context, new string[] { leftValue, rightValue }, variable.Ev3Name);
+                                }
                                 else
                                     writer.WriteLine($"    DIVF {leftValue} {rightValue} {variable.Ev3Name}");
                                 break;
@@ -124,71 +119,6 @@ namespace EV3BasicCompiler.Compilers
                 }
             }
             return "";
-        }
-
-        private string ConvertIfNeeded(TextWriter writer, string value, IExpressionCompiler compiler, EV3Type outputType)
-        {
-            if (compiler.Type.BaseType().IsNumber() && outputType.BaseType() == EV3Type.String)
-            {
-                using (var tempVariables = Context.UseTempVariables())
-                {
-                    IEV3Variable outputVariable = tempVariables.CreateVariable(EV3Type.String);
-
-                    writer.WriteLine($"    STRINGS VALUE_FORMATTED {value} '%g' 99 {outputVariable.Ev3Name}");
-
-                    return outputVariable.Ev3Name;
-                }
-            }
-            else
-                return value;
-
-        }
-
-        private EV3Type CalculateCommonType(EV3Type type1, EV3Type type2)
-        {
-            if (type1.BaseType() == type2.BaseType())
-            {
-                if (type1.IsArray())
-                    return type1;
-                return type2;
-            }
-            if (type1.BaseType().IsNumber() && type2.BaseType().IsNumber())
-                return EV3Type.Float;
-            if ((type1.BaseType().IsNumber() && type2.BaseType() == EV3Type.String) || (type1.BaseType() == EV3Type.String && type2.BaseType().IsNumber()))
-                return EV3Type.String;
-
-            return EV3Type.Unknown;
-        }
-
-        public SBExpression LeftExpression
-        {
-            get { return ParentExpression.LeftHandSide; }
-        }
-        public SBExpression RightExpression
-        {
-            get { return ParentExpression.RightHandSide; }
-        }
-
-        private IExpressionCompiler _leftCompiler = null;
-        public IExpressionCompiler LeftCompiler
-        {
-            get
-            {
-                if (_leftCompiler == null)
-                    _leftCompiler = LeftExpression.Compiler();
-                return _leftCompiler;
-            }
-        }
-
-        private IExpressionCompiler _rightCompiler = null;
-        public IExpressionCompiler RightCompiler
-        {
-            get
-            {
-                if (_rightCompiler == null)
-                    _rightCompiler = RightExpression.Compiler();
-                return _rightCompiler;
-            }
         }
     }
 }

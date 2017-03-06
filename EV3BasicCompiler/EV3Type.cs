@@ -16,7 +16,8 @@ namespace EV3BasicCompiler
         Int16Array = 102,
         Int32Array = 103,
         FloatArray = 104,
-        StringArray = 105
+        StringArray = 105,
+        Boolean = 200
     }
 
     public static class EV3VariableTypeExtensions

@@ -1,6 +1,7 @@
 ﻿using Microsoft.SmallBasic.Expressions;
 using System;
 using System.IO;
+using EV3BasicCompiler.Compilers;
 
 namespace EV3BasicCompiler.Compilers
 {
@@ -35,15 +36,33 @@ namespace EV3BasicCompiler.Compilers
             {
                 using (var tempVariables = Context.UseTempVariables())
                 {
-                    string indexValue = ParentExpression.Indexer.Compiler().Compile(writer, tempVariables.CreateVariable(EV3Type.Int32));
-                    if (variable.Ev3Name.Equals(reference.Ev3Name, StringComparison.InvariantCultureIgnoreCase))
+                    IExpressionCompiler indexCompiler = ParentExpression.Indexer.Compiler();
+                    string indexValue = indexCompiler.Compile(writer, tempVariables.CreateVariable(EV3Type.Float));
+                    if (variable.Ev3Name.Equals(reference.Ev3Name, StringComparison.InvariantCultureIgnoreCase) ||
+                        variable.Type != Type.BaseType())
                     {
                         variable = tempVariables.CreateVariable(Type.BaseType());
                     }
                     if (variable.Type == EV3Type.String)
                         writer.WriteLine($"    CALL ARRAYGET_STRING {indexValue} {variable.Ev3Name} {reference.Ev3Name}");
                     else
-                        writer.WriteLine($"    CALL ARRAYGET_FLOAT {indexValue} {variable.Ev3Name} {reference.Ev3Name}");
+                    {
+                        if (Context.DoBoundsCheck)
+                            writer.WriteLine($"    CALL ARRAYGET_FLOAT {indexValue} {variable.Ev3Name} {reference.Ev3Name}");
+                        else
+                        {
+                            if (indexCompiler.IsLiteral)
+                            {
+                                if (indexValue.EndsWith(".0")) indexValue = indexValue.Remove(indexValue.Length - 2);
+                            }
+                            else
+                            {
+                                writer.WriteLine($"    MOVEF_32 {indexValue} INDEX");
+                                indexValue = "INDEX";
+                            }
+                            writer.WriteLine($"    ARRAY_READ {reference.Ev3Name} {indexValue} {variable.Ev3Name}");
+                        }
+                    }
                     return variable.Ev3Name;
                 }
             }
@@ -54,7 +73,8 @@ namespace EV3BasicCompiler.Compilers
         {
             using (var tempVariables = Context.UseTempVariables())
             {
-                string indexValue = ParentExpression.Indexer.Compiler().Compile(writer, tempVariables.CreateVariable(EV3Type.Int32));
+                IExpressionCompiler indexCompiler = ParentExpression.Indexer.Compiler();
+                string indexValue = indexCompiler.Compile(writer, tempVariables.CreateVariable(EV3Type.Float));
 
                 switch (Type.BaseType())
                 {
@@ -66,7 +86,15 @@ namespace EV3BasicCompiler.Compilers
                             writer.WriteLine($"    CALL ARRAYSTORE_FLOAT {indexValue} {compiledValue} {outputName}");
                         else
                         {
-                            if (indexValue.EndsWith(".0")) indexValue = indexValue.Remove(indexValue.Length - 2);
+                            if (indexCompiler.IsLiteral)
+                            {
+                                if (indexValue.EndsWith(".0")) indexValue = indexValue.Remove(indexValue.Length - 2);
+                            }
+                            else
+                            {
+                                writer.WriteLine($"    MOVEF_32 {indexValue} INDEX");
+                                indexValue = "INDEX";
+                            }
                             writer.WriteLine($"    ARRAY_WRITE {outputName} {indexValue} {compiledValue}");
                         }
                         break;

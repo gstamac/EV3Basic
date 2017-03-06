@@ -1,12 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.IO;
+﻿using System.IO;
 using Microsoft.SmallBasic.Statements;
-using Microsoft.SmallBasic.Expressions;
-using EV3BasicCompiler.Compilers;
 
 namespace EV3BasicCompiler.Compilers
 {
@@ -23,7 +16,6 @@ namespace EV3BasicCompiler.Compilers
             {
                 EV3Variable variable = Context.FindVariable(variableCompiler.VariableName);
                 IExpressionCompiler valueCompiler = ParentStatement.RightValue.Compiler();
-                string compiledValue = valueCompiler.Compile(writer, variable);
 
                 if (variable.Type.IsArray())
                 {
@@ -32,8 +24,6 @@ namespace EV3BasicCompiler.Compilers
                     else if (valueCompiler is LiteralExpressionCompiler)
                         variable.UpdateMaxIndex(((LiteralExpressionCompiler)valueCompiler).MaxIndex);
                 }
-
-                if (string.IsNullOrEmpty(compiledValue)) return;
 
                 //Console.WriteLine($"valueCompiler.Type = {valueCompiler.Type}, variable.Type = {variable.Type}, variableCompiler.Type = {variableCompiler.Type}");
 
@@ -49,12 +39,22 @@ namespace EV3BasicCompiler.Compilers
                 {
                     AddError($"Cannot assign {valueCompiler.Type} value to {variableCompiler.Type} variable '{variableCompiler.VariableName}'");
                 }
-                else if (valueCompiler.Type.IsNumber() && variableCompiler.Type == EV3Type.String)
+                else if (valueCompiler.Type.IsNumber() && variableCompiler.Type == EV3Type.String && !variable.Type.IsArray())
                 {
-                    writer.WriteLine($"    STRINGS VALUE_FORMATTED {compiledValue} '%g' 99 {variable.Ev3Name}");
+                    using (var tempVariables = Context.UseTempVariables())
+                    {
+                        IEV3Variable tempVariable = tempVariables.CreateVariable(valueCompiler.Type);
+                        string compiledValue = valueCompiler.Compile(writer, tempVariable);
+                        if (string.IsNullOrEmpty(compiledValue)) return;
+
+                        writer.WriteLine($"    STRINGS VALUE_FORMATTED {compiledValue} '%g' 99 {variable.Ev3Name}");
+                    }
                 }
                 else
                 {
+                    string compiledValue = valueCompiler.Compile(writer, variable);
+                    if (string.IsNullOrEmpty(compiledValue)) return;
+
                     using (var tempVariables = Context.UseTempVariables())
                     {
                         if (valueCompiler.Type.IsNumber() && variable.Type == EV3Type.StringArray)

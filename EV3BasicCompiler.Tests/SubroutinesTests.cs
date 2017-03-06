@@ -22,5 +22,30 @@ namespace EV3BasicCompiler.Tests
             ", ExtractSubroutinesCode);
         }
 
+        [TestMethod]
+        public void ShouldCompileExecutingSub()
+        {
+            TestIt(@"
+                TestSub()
+                Sub TestSub
+                EndSub
+            ", @"
+            subcall PROGRAM_MAIN
+            {
+                IN_32 SUBPROGRAM
+                DATA32 INDEX
+                ARRAY8 STACKPOINTER 4
+                ARRAY32 RETURNSTACK2 128
+                ARRAY32 RETURNSTACK 128
+                MOVE8_8 0 STACKPOINTER
+                WRITE32 ENDSUB_TESTSUB:CALLSUB0 STACKPOINTER RETURNSTACK
+                ADD8 STACKPOINTER 1 STACKPOINTER
+                JR SUB_TESTSUB
+            CALLSUB0:
+            ENDTHREAD:
+                RETURN
+            }
+            ", ExtractFullMainProgramCode);
+        }
     }
 }

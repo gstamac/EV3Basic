@@ -2,6 +2,7 @@
 using System;
 using SBExpression = Microsoft.SmallBasic.Expressions.Expression;
 using System.IO;
+using EV3BasicCompiler;
 
 namespace EV3BasicCompiler.Compilers
 {
@@ -10,6 +11,8 @@ namespace EV3BasicCompiler.Compilers
         protected EV3Type type;
         protected bool? isLiteral;
         protected string value;
+        protected bool? canCompileBoolean;
+        protected bool? booleanValue;
 
         public EV3CompilerContext Context { get; }
         protected T ParentExpression { get; }
@@ -35,7 +38,7 @@ namespace EV3BasicCompiler.Compilers
         {
             get
             {
-                EnsureIsLiteral();
+                if (!isLiteral.HasValue) CalculateIsLiteral();
                 return isLiteral.GetValueOrDefault();
             }
         }
@@ -49,21 +52,27 @@ namespace EV3BasicCompiler.Compilers
             }
         }
 
+        public bool CanCompileBoolean
+        {
+            get
+            {
+                if (!canCompileBoolean.HasValue) CalculateCanCompileBoolean();
+                return canCompileBoolean.GetValueOrDefault();
+            }
+        }
+
+        public bool BooleanValue
+        {
+            get
+            {
+                if (!booleanValue.HasValue) CalculateBooleanValue();
+                return booleanValue.GetValueOrDefault();
+            }
+        }
+
         protected void EnsureType()
         {
             if (type == EV3Type.Unknown) CalculateType();
-        }
-
-        protected abstract void CalculateType();
-
-        protected void EnsureIsLiteral()
-        {
-            if (!isLiteral.HasValue) CalculateIsLiteral();
-        }
-
-        protected virtual void CalculateIsLiteral()
-        {
-            isLiteral = false;
         }
 
         protected void EnsureValue()
@@ -71,9 +80,48 @@ namespace EV3BasicCompiler.Compilers
             if (value == null) CalculateValue();
         }
 
+        protected abstract void CalculateType();
+        protected virtual void CalculateIsLiteral() => isLiteral = false;
         protected abstract void CalculateValue();
+        protected virtual void CalculateCanCompileBoolean() => canCompileBoolean = (Type == EV3Type.Boolean) || (Type == EV3Type.String);
+        protected virtual void CalculateBooleanValue() => booleanValue = false;
 
         public abstract string Compile(TextWriter writer, IEV3Variable variable);
+
+        protected string CompileWithConvert(TextWriter writer, IExpressionCompiler compiler, EV3Type resultType, EV3Variables.TempVariableCreator tempVariables)
+        {
+            string value = compiler.Compile(writer, tempVariables.CreateVariable(compiler.Type));
+
+            if (compiler.Type.BaseType().IsNumber() && resultType.BaseType() == EV3Type.String)
+            {
+                IEV3Variable outputVariable = tempVariables.CreateVariable(EV3Type.String);
+
+                writer.WriteLine($"    STRINGS VALUE_FORMATTED {value} '%g' 99 {outputVariable.Ev3Name}");
+
+                return outputVariable.Ev3Name;
+            }
+            else
+                return value;
+        }
+
+        public void CompileBranchForStringVariable(TextWriter writer, IExpressionCompiler valueCompiler, string label, bool negated)
+        {
+            if (CanCompileBoolean)
+            {
+                using (var tempVariables = Context.UseTempVariables())
+                {
+                    IEV3Variable tempResultVariable = tempVariables.CreateVariable(EV3Type.String);
+                    IEV3Variable tempIsTrueVariable = tempVariables.CreateVariable(EV3Type.Float);
+                    writer.WriteLine($"    CALL IS_TRUE {valueCompiler.Compile(writer, tempResultVariable)} {tempIsTrueVariable.Ev3Name}");
+                    writer.WriteLine($"    JR_{(negated ? "EQ" : "NEQ")}8 {tempIsTrueVariable.Ev3Name} 0 {label}");
+
+                    //writer.WriteLine($"    STRINGS DUPLICATE {Value} {tempResultVariable.Ev3Name}");
+                    //writer.WriteLine($"    AND8888_32 {tempResultVariable.Ev3Name} -538976289 {tempResultVariable.Ev3Name}");
+                    //writer.WriteLine($"    STRINGS COMPARE {tempResultVariable.Ev3Name} 'TRUE' {tempIsTrueVariable.Ev3Name}");
+                    //writer.WriteLine($"    JR_EQ8 {tempIsTrueVariable.Ev3Name} 0 {label}");
+                }
+            }
+        }
 
         protected void AddError(string message) => AddError(message, ParentExpression.StartToken);
         protected void AddError(string message, TokenInfo tokenInfo) => Context.AddError(message, tokenInfo);
