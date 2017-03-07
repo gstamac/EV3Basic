@@ -35,7 +35,7 @@ namespace SmallBasicEV3Extension
     [SmallBasicType]
     public static class Motor
     {
- 
+
         /// <summary>
         /// Stop one or multiple motors. This will also cancel any scheduled movement for this motor.
         /// </summary>
@@ -45,8 +45,8 @@ namespace SmallBasicEV3Extension
         {
             int layer;
             int nos;
-            DecodePortsDescriptor(ports==null?"":ports.ToString(), out layer, out nos);
-            int brk = (brake==null?"":brake.ToString()).Equals("true", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+            DecodePortsDescriptor(ports == null ? "" : ports.ToString(), out layer, out nos);
+            int brk = (brake == null ? "" : brake.ToString()).Equals("true", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
 
             ByteCodeBuffer c = new ByteCodeBuffer();
             c.OP(0xA3);
@@ -114,27 +114,41 @@ namespace SmallBasicEV3Extension
         /// <param name="speed2">Speed value from -100 (full reverse) to 100 (full forward) of the motor with the higher port letter.</param>
         public static void StartSync(Primitive ports, Primitive speed1, Primitive speed2)
         {
-            int layer, nos;
-            DecodePortsDescriptor(ports == null ? "" : ports.ToString(), out layer, out nos);
             double spd1 = fclamp(speed1, -100, 100);
             double spd2 = fclamp(speed2, -100, 100);
-
-            // the computed values that will be needed by the firmware function
-            int spd;
-            int trn;
+            double speed;
+            double turn;
 
             // motor with lower letter is faster or equally fast and must become master      
             if ((spd1 >= 0 ? spd1 : -spd1) >= (spd2 >= 0 ? spd2 : -spd2))
             {
-                spd = (int)spd1;
-                trn = 100 - (int)((100.0 * spd2) / spd1);
+                speed = spd1;
+                turn = 100 - ((100.0 * spd2) / spd1);
             }
             // motor with higher letter is faster and must become master
             else
             {
-                spd = (int)spd2;
-                trn = -(100 - (int)((100.0 * spd1) / spd2));
+                speed = spd2;
+                turn = -(100 - ((100.0 * spd1) / spd2));
             }
+
+            StartSyncTurn(ports, speed, turn);
+        }
+
+        /// <summary>
+        /// Set two motors to run synchronized at their chosen speed levels and turn in desired direction. 
+        /// The two motors will be synchronized which means that when one motor experiences some resistance and cannot keep up its speed, the other motor will also slow down or stop altogether. This is especially useful for vehicles with two independently driven wheels which still need to go straight or make a specified turn.
+        /// The motors will keep running until stopped by another command.
+        /// </summary>
+        /// <param name="ports">Name of two motor ports (for example "AB" or "CD").</param>
+        /// <param name="speed">Speed value from -100 (full reverse) to 100 (full forward) of the motors.</param>
+        /// <param name="turn">Turn value from -100 (full left) to 100 (full right).</param>
+        public static void StartSyncTurn(Primitive ports, Primitive speed, Primitive turn)
+        {
+            int layer, nos;
+            DecodePortsDescriptor(ports == null ? "" : ports.ToString(), out layer, out nos);
+            int spd = (int)fclamp(speed, -100, 100);
+            int trn = (int)fclamp(turn, -100, 100);
 
             ByteCodeBuffer c = new ByteCodeBuffer();
             c.OP(0xB0);        // turn on synchronized movement
@@ -196,7 +210,7 @@ namespace SmallBasicEV3Extension
             c.GLOBVAR(0);
             byte[] reply = EV3RemoteControler.DirectCommand(c, 1, 0);
 
-            return new Primitive((reply!=null && reply[0]!=0) ? "True" : "False");
+            return new Primitive((reply != null && reply[0] != 0) ? "True" : "False");
         }
 
         /// <summary>
@@ -234,7 +248,7 @@ namespace SmallBasicEV3Extension
             c.CONST(brk);
             EV3RemoteControler.DirectCommand(c, 0, 0);
         }
-        
+
         /// <summary>
         /// Move one or more motors with the specified power. The power can be adjusted along the total rotation to get a soft start and a soft stop if needed.
         /// The total angle to rotate the motor is degrees1+degrees2+degrees3. At the end of the movement, the motor stops automatically (with or without using the brake).
@@ -246,7 +260,7 @@ namespace SmallBasicEV3Extension
         /// <param name="degrees2">The part of the rotation with uniform motion</param>
         /// <param name="degrees3">The part of the rotation during which to decelerate</param>
         /// <param name="brake">"True", if the motor(s) should switch on the brake after movement</param>
-        public static void SchedulePower (Primitive ports, Primitive power, Primitive degrees1, Primitive degrees2, Primitive degrees3, Primitive brake)
+        public static void SchedulePower(Primitive ports, Primitive power, Primitive degrees1, Primitive degrees2, Primitive degrees3, Primitive brake)
         {
             int layer, nos;
             DecodePortsDescriptor(ports == null ? "" : ports.ToString(), out layer, out nos);
@@ -285,33 +299,50 @@ namespace SmallBasicEV3Extension
         /// <param name="brake">"True", if the motors should switch on the brake after movement.</param>
         public static void ScheduleSync(Primitive ports, Primitive speed1, Primitive speed2, Primitive degrees, Primitive brake)
         {
+            double spd1 = fclamp(speed1, -100, 100);
+            double spd2 = fclamp(speed2, -100, 100);
+            double speed;
+            double turn;
+
+            // motor with lower letter is faster or equally fast and must become master      
+            if ((spd1 >= 0 ? spd1 : -spd1) >= (spd2 >= 0 ? spd2 : -spd2))
+            {
+                speed = spd1;
+                turn = 100 - ((100.0 * spd2) / spd1);
+            }
+            // motor with higher letter is faster and must become master
+            else
+            {
+                speed = spd2;
+                turn = -(100 - ((100.0 * spd1) / spd2));
+            }
+
+            ScheduleSyncTurn(ports, speed, turn, degrees, brake);
+        }
+
+        /// <summary>
+        /// Move 2 motors synchronously in desired direction a defined number of degrees. 
+        /// The two motors are synchronized which means that when one motor experiences some resistance and cannot keep up its speed, the other motor will also slow down or stop altogether. This is especially useful for vehicles with two independently driven wheels which still need to go straight or make a specified turn.
+        /// The distance to move is for the motor with the higher speed.
+        /// This function returns immediately. You can use IsBusy() to detect the end of the movement or call Wait() to wait until movement is finished.
+        /// </summary>
+        /// <param name="ports">Names of 2 motor ports (for example "AB" or "CD"</param>
+        /// <param name="speed">Speed value from -100 (full reverse) to 100 (full forward) of the motors.</param>
+        /// <param name="turn">Turn value from -100 (full left) to 100 (full right).</param>
+        /// <param name="degrees">The angle through which the faster motor should rotate.</param>
+        /// <param name="brake">"True", if the motors should switch on the brake after movement.</param>
+        public static void ScheduleSyncTurn(Primitive ports, Primitive speed, Primitive turn, Primitive degrees, Primitive brake)
+        {
             int layer, nos;
             DecodePortsDescriptor(ports == null ? "" : ports.ToString(), out layer, out nos);
-            double spd1 = fclamp(speed1,-100,100);
-            double spd2 = fclamp(speed2,-100,100);
+            int spd = (int)fclamp(speed, -100, 100);
+            int trn = (int)fclamp(turn, -100, 100);
             int dgr = degrees;
             if (dgr < 0) dgr = -dgr;
             int brk = (brake == null ? "" : brake.ToString()).Equals("true", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
 
             if (dgr > 0)
             {
-                // the computed values that will be needed by the firmware function
-                int spd;   
-                int trn;
-
-                // motor with lower letter is faster or equally fast and must become master      
-                if ( (spd1>=0?spd1:-spd1) >= (spd2>=0?spd2:-spd2))
-                {
-                    spd = (int)spd1;
-                    trn = 100 - (int)((100.0*spd2)/spd1);
-                }
-                // motor with higher letter is faster and must become master
-                else   
-                {
-                    spd = (int)spd2;
-                    trn = - (100 - (int)((100.0*spd1) / spd2));
-                }
-
                 ByteCodeBuffer c = new ByteCodeBuffer();
                 c.OP(0xB0);        // start scheduled command
                 c.CONST(layer);
@@ -329,7 +360,7 @@ namespace SmallBasicEV3Extension
         /// Set the rotation count of one or more motors to 0.
         /// </summary>
         /// <param name="ports">Motor port name(s)</param>
-        public static void ResetCount (Primitive ports)
+        public static void ResetCount(Primitive ports)
         {
             int layer, nos;
             DecodePortsDescriptor(ports == null ? "" : ports.ToString(), out layer, out nos);
@@ -347,7 +378,7 @@ namespace SmallBasicEV3Extension
         /// </summary>
         /// <param name="port">Motor port name</param>
         /// <returns>The current rotation count in degrees.</returns>
-        public static Primitive GetCount (Primitive port)
+        public static Primitive GetCount(Primitive port)
         {
             int layer, no;
             DecodePortDescriptor(port == null ? "" : port.ToString(), out layer, out no);
@@ -420,7 +451,23 @@ namespace SmallBasicEV3Extension
             Wait(ports);
         }
 
-       
+        /// <summary>
+        /// Moves 2 motors synchronously into desired direction a defined number of degrees. 
+        /// The two motors are synchronized which means that when one motor experiences some resistance and cannot keep up its speed, the other motor will also slow down or stop altogether. This is especially useful for vehicles with two independently driven wheels which still need to go straight or make a specified turn.
+        /// The angle to move is for the motor with the higher speed.
+        /// </summary>
+        /// <param name="ports">Names of 2 motor ports (for example "AB" or "CD"</param>
+        /// <param name="speed">Speed value from -100 (full reverse) to 100 (full forward) of the motors.</param>
+        /// <param name="turn">Turn value from -100 (full left) to 100 (full right).</param>
+        /// <param name="degrees">The angle of the faster motor to rotate</param>
+        /// <param name="brake">"True", if the motors should switch on the brake after movement</param>
+        public static void MoveSyncTurn(Primitive ports, Primitive speed, Primitive turn, Primitive degrees, Primitive brake)
+        {
+            ScheduleSyncTurn(ports, speed, turn, degrees, brake);
+            Wait(ports);
+        }
+
+
         /// <summary>
         /// Wait until the specified motor(s) has finished a "Schedule..." or "Move..." operation.
         /// Using this method is normally better than calling IsBusy() in a tight loop.
@@ -441,7 +488,7 @@ namespace SmallBasicEV3Extension
             for (;;)
             {
                 byte[] reply = EV3RemoteControler.DirectCommand(c, 1, 0);
-                if (reply==null || reply[0] == 0)
+                if (reply == null || reply[0] == 0)
                 {
                     break;
                 }
