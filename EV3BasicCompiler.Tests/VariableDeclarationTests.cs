@@ -364,7 +364,7 @@ namespace EV3BasicCompiler.Tests
             TestCompileFailure(@"
                 i[4] = ""X""
                 j = i + i
-            ", "Operations on arrays are not permited", 3, 21);
+            ", "Operations on arrays are not permited");
         }
 
         [TestMethod]
@@ -460,7 +460,8 @@ namespace EV3BasicCompiler.Tests
         public void ShouldDeclareStringTempVariables()
         {
             TestIt(@"
-                LCD.Text(1, 50, 50, 2, 3)
+                i = 3
+                LCD.Text(1, 50, 50, 2, i)
             ", @"
                 DATAS S0 252
             ", ExtractTempDeclarationCode);
@@ -479,8 +480,6 @@ namespace EV3BasicCompiler.Tests
                 DATAF F2    
                 DATAF F3    
                 DATAS S0 252
-                DATAS S1 252
-                DATAS S2 252
             ", ExtractTempDeclarationCode);
 
         }
@@ -500,10 +499,12 @@ namespace EV3BasicCompiler.Tests
         public void ShouldDeclareTempVariables_WhenUsedInsideSub()
         {
             TestIt(@"
-                Text.IsSubText(1, 2)
+                i = 1
+                j = 2
+                Text.IsSubText(i, j)
 
                 Sub X
-                    Text.IsSubText(1, 2)
+                    Text.IsSubText(i, j)
                 EndSub
             ", @"
                 DATAS S0 252              

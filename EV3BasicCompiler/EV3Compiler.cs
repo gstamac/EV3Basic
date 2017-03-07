@@ -29,6 +29,7 @@ namespace EV3BasicCompiler
             parser = new Parser(SBErrors);
 
             library = new EV3Library();
+
             variables = new EV3Variables(parser);
             context = new EV3CompilerContext(variables, library);
             mainProgram = new EV3MainProgram(parser, variables, context);
@@ -79,22 +80,24 @@ namespace EV3BasicCompiler
 
         private void ProcessPragmas()
         {
-            foreach (EmptyStatement statement in parser.GetStatements<EmptyStatement>().Where(s => s.EndingComment.TokenType == TokenType.Comment))
+            foreach (EmptyStatement statement in parser.GetStatements<EmptyStatement>()
+                .Where(s => s.EndingComment.TokenType == TokenType.Comment && s.EndingComment.Text.StartsWith("'PRAGMA")))
             {
-                if (statement.EndingComment.Text.StartsWith("'PRAGMA"))
-                {
-                    string setting = statement.EndingComment.Text.Substring(7).Trim();
-                    if (setting.Equals("NOBOUNDSCHECK"))
-                        context.DoBoundsCheck = false;
-                    else if (setting.Equals("BOUNDSCHECK"))
-                        context.DoBoundsCheck = true;
-                    else if (setting.Equals("NODIVISIONCHECK"))
-                        context.DoDivisionCheck = false;
-                    else if (setting.Equals("DIVISIONCHECK"))
-                        context.DoDivisionCheck = true;
-                    else
-                        AddError("Unknown PRAGMA: " + setting, statement.StartToken);
-                }
+                string setting = statement.EndingComment.Text.Substring(7).Trim();
+                if (setting.Equals("NOBOUNDSCHECK"))
+                    context.DoBoundsCheck = false;
+                else if (setting.Equals("BOUNDSCHECK"))
+                    context.DoBoundsCheck = true;
+                else if (setting.Equals("NODIVISIONCHECK"))
+                    context.DoDivisionCheck = false;
+                else if (setting.Equals("DIVISIONCHECK"))
+                    context.DoDivisionCheck = true;
+                else if (setting.Equals("NOOPTIMIZATION"))
+                    context.DoOptimization = false;
+                else if (setting.Equals("OPTIMIZATION"))
+                    context.DoOptimization = true;
+                else
+                    AddError("Unknown PRAGMA: " + setting, statement.StartToken);
             }
         }
 
@@ -119,7 +122,7 @@ namespace EV3BasicCompiler
 
         private void LoadVariables()
         {
-            variables.Process(library.GetSubResultTypes());
+            variables.Process();
         }
 
         private void ProcessCode()

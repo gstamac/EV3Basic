@@ -12,24 +12,24 @@ namespace EV3BasicCompiler.Compilers
         {
         }
 
-        public override void Compile(TextWriter writer)
+        public override void Compile(TextWriter writer, bool isRootStatement)
         {
             List<IConditionStatementCompiler> switchList = GenerateSwitchList();
             if (switchList != null)
             {
-                CompileSwitchList(writer, switchList);
+                CompileSwitchList(writer, switchList, isRootStatement);
             }
             else
                 AddError("Condition in if statement needs to be boolean expression");
         }
 
-        private void CompileSwitchList(TextWriter writer, List<IConditionStatementCompiler> switchList)
+        private void CompileSwitchList(TextWriter writer, List<IConditionStatementCompiler> switchList, bool isRootStatement)
         {
             if (switchList.Count == 0) return;
 
             if (switchList[0].IsAlwaysTrue)
             {
-                switchList[0].CompileStatements(writer);
+                switchList[0].CompileStatements(writer, isRootStatement);
                 return;
             }
 
@@ -55,7 +55,7 @@ namespace EV3BasicCompiler.Compilers
                     switchCompiler.ConditionCompiler.CompileBranchNegated(writer, $"else{label}_{subLabel}");
                 }
 
-                switchCompiler.CompileStatements(writer);
+                switchCompiler.CompileStatements(writer, false);
 
                 if (switchCompiler.IsAlwaysTrue) break;
 
@@ -65,9 +65,9 @@ namespace EV3BasicCompiler.Compilers
             writer.WriteLine($"  endif{label}:");
         }
 
-        public void CompileStatements(TextWriter writer)
+        public void CompileStatements(TextWriter writer, bool isRootStatement)
         {
-            ParentStatement.ThenStatements.Compile(writer);
+            ParentStatement.ThenStatements.Compile(writer, isRootStatement);
         }
 
         private List<IConditionStatementCompiler> GenerateSwitchList()
@@ -108,9 +108,9 @@ namespace EV3BasicCompiler.Compilers
             public bool IsAlwaysFalse { get { return false; } }
             public bool IsAlwaysTrue { get { return true; } }
 
-            public void CompileStatements(TextWriter writer)
+            public void CompileStatements(TextWriter writer, bool isRootStatement)
             {
-                elseStatements.Compile(writer);
+                elseStatements.Compile(writer, isRootStatement);
             }
         }
 

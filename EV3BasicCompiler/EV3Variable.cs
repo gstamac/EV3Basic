@@ -18,6 +18,8 @@ namespace EV3BasicCompiler
         {
             Name = name;
             Type = EV3Type.Unknown;
+            IsConstant = true;
+            Value = null;
             TokenInfo = tokenInfo;
         }
 
@@ -35,6 +37,8 @@ namespace EV3BasicCompiler
 
         public TokenInfo TokenInfo { get; set; }
         public EV3Type Type { get; set; }
+        public bool IsConstant { get; set; }
+        public string Value { get; set; }
         public int MaxIndex { get; private set; }
         public string Comment { get; set; }
 

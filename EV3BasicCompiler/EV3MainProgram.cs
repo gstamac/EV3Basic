@@ -57,7 +57,7 @@ namespace EV3BasicCompiler
             foreach (SubroutineStatementCompiler compiler in parser.GetStatements<SubroutineStatement>().Select(s => s.Compiler<SubroutineStatementCompiler>()))
             {
                 StringWriter code = new StringWriter();
-                compiler.Compile(code);
+                compiler.Compile(code, true);
 
                 EV3SubDefinition sub = new EV3SubDefinition(compiler.Ev3Name, compiler.Ev3Name, code.ToString());
                 subroutines.Add(sub);
@@ -92,7 +92,7 @@ namespace EV3BasicCompiler
         {
             using (StringWriter mainProgram = new StringWriter())
             {
-                parser.ParseTree.Where(s => !(s is SubroutineStatement)).Compile(mainProgram);
+                parser.ParseTree.Where(s => !(s is SubroutineStatement)).Compile(mainProgram, true);
                 CompileCodeForThreadDispatchTable(writer);
                 writer.Write(mainProgram);
             }

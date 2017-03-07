@@ -9,8 +9,8 @@ using System.Text;
 namespace EV3BasicCompiler.Tests
 {
     [TestClass]
-    [Ignore]
-    public class IntegrationTests : EV3CompilerTestsBase
+    //[Ignore]
+    public class OptimizationIntegrationTests : EV3CompilerTestsBase
     {
         const string SOURCE_FILES_DIR = @"C:\Work\GitHub\EV3Basic\Examples";
 

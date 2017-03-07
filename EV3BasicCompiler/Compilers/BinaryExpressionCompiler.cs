@@ -12,56 +12,59 @@ namespace EV3BasicCompiler.Compilers
         {
         }
 
-        protected override void CalculateType()
+        protected override EV3Type CalculateType()
         {
             if (LeftCompiler.Type.IsArray() || RightCompiler.Type.IsArray())
             {
                 AddError("Operations on arrays are not permited");
-                type = EV3Type.Void;
+                return EV3Type.Void;
             }
             else if ((int)LeftCompiler.Type > (int)RightCompiler.Type)
-                type = LeftCompiler.Type;
+                return LeftCompiler.Type;
             else
-                type = RightCompiler.Type;
+                return RightCompiler.Type;
         }
 
-        protected override void CalculateValue()
+        protected override string CalculateValue()
         {
             if (LeftCompiler.IsLiteral && RightCompiler.IsLiteral)
             {
-                if (LeftCompiler.Type.IsNumber() && RightCompiler.Type.IsNumber())
+                EV3Type commonType = CalculateCommonType(LeftCompiler.Type, RightCompiler.Type);
+
+                if (commonType.IsArray()) return null;
+
+                if (commonType.IsNumber())
                 {
                     float leftValue = SmallBasicExtensions.ParseFloat(LeftCompiler.Value);
                     float rightValue = SmallBasicExtensions.ParseFloat(RightCompiler.Value);
                     switch (ParentExpression.Operator.Token)
                     {
                         case Token.Addition:
-                            value = SmallBasicExtensions.FormatFloat(leftValue + rightValue);
-                            isLiteral = true;
-                            break;
+                            return SmallBasicExtensions.FormatFloat(leftValue + rightValue);
                         case Token.Subtraction:
-                            value = SmallBasicExtensions.FormatFloat(leftValue - rightValue);
-                            isLiteral = true;
-                            break;
+                            return SmallBasicExtensions.FormatFloat(leftValue - rightValue);
                         case Token.Division:
-                            value = SmallBasicExtensions.FormatFloat(leftValue / rightValue);
-                            isLiteral = true;
-                            break;
+                            return SmallBasicExtensions.FormatFloat(leftValue / rightValue);
                         case Token.Multiplication:
-                            value = SmallBasicExtensions.FormatFloat(leftValue * rightValue);
-                            isLiteral = true;
-                            break;
+                            return SmallBasicExtensions.FormatFloat(leftValue * rightValue);
                     }
                 }
-                else if (!LeftCompiler.Type.IsNumber() && !RightCompiler.Type.IsNumber())
+                else 
                 {
                     if (ParentExpression.Operator.Token == Token.Addition)
                     {
-                        value = '\'' + LeftCompiler.Value.Trim('\'') + RightCompiler.Value.Trim('\'') + '\'';
-                        isLiteral = true;
+                        string leftValue = LeftCompiler.Value.Trim('\'');
+                        if (LeftCompiler.Type.IsNumber())
+                            leftValue = SmallBasicExtensions.FormatFloat(leftValue);
+                        string rightValue = RightCompiler.Value.Trim('\'');
+                        if (RightCompiler.Type.IsNumber())
+                            rightValue = SmallBasicExtensions.FormatFloat(rightValue);
+
+                        return '\'' + leftValue + rightValue + '\'';
                     }
                 }
             }
+            return null;
         }
 
         public override string Compile(TextWriter writer, IEV3Variable variable)

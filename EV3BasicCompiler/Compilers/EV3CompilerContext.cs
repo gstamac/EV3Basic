@@ -15,6 +15,7 @@ namespace EV3BasicCompiler.Compilers
 
         public bool DoDivisionCheck { get; set; }
         public bool DoBoundsCheck { get; set; }
+        public bool DoOptimization { get; set; }
 
         public List<Error> Errors { get; private set; }
 
@@ -23,11 +24,12 @@ namespace EV3BasicCompiler.Compilers
             this.variables = variables;
             this.library = library;
 
-            nextLabel = 0;
-            nextThread = 0;
-
             DoDivisionCheck = true;
             DoBoundsCheck = true;
+            DoOptimization = true;
+
+            nextLabel = 0;
+            nextThread = 0;
 
             Errors = new List<Error>();
         }

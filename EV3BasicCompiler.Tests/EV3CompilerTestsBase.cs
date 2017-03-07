@@ -11,22 +11,22 @@ namespace EV3BasicCompiler.Tests
 {
     public class EV3CompilerTestsBase
     {
-        protected void TestInitialization(string sbCode, string expectedCode)
+        protected void TestInitialization(string sbCode, string expectedCode, bool doOptimization = false)
         {
-            TestIt(sbCode, expectedCode, ExtractInitializationCode);
+            TestIt(sbCode, expectedCode, ExtractInitializationCode, doOptimization);
         }
 
-        protected void TestDeclaration(string sbCode, string expectedCode)
+        protected void TestDeclaration(string sbCode, string expectedCode, bool doOptimization = false)
         {
-            TestIt(sbCode, expectedCode, ExtractDeclarationCode);
+            TestIt(sbCode, expectedCode, ExtractDeclarationCode, doOptimization);
         }
 
-        protected void TestInitializationOld(string sbCode, string expectedCode)
+        protected void TestInitializationOld(string sbCode, string expectedCode, bool doOptimization = false)
         {
             TestItOld(sbCode, expectedCode, ExtractInitializationCode);
         }
 
-        protected void TestDeclarationOld(string sbCode, string expectedCode)
+        protected void TestDeclarationOld(string sbCode, string expectedCode, bool doOptimization = false)
         {
             TestItOld(sbCode, expectedCode, ExtractDeclarationCode);
         }
@@ -41,8 +41,11 @@ namespace EV3BasicCompiler.Tests
             TestItOld(sbCode, expectedCode, c => c);
         }
 
-        protected void TestIt(string sbCode, string expectedCode, Func<string, string> extractCodeFunc)
+        protected void TestIt(string sbCode, string expectedCode, Func<string, string> extractCodeFunc, bool doOptimization = false)
         {
+            if (!doOptimization)
+                sbCode = "'PRAGMA NOOPTIMIZATION" + Environment.NewLine + sbCode;
+
             using (EV3Compiler compiler = new EV3Compiler())
             using (StringReader stringReader = new StringReader(sbCode))
             using (StringWriter writer = new StringWriter())
@@ -75,7 +78,7 @@ namespace EV3BasicCompiler.Tests
             }
         }
 
-        protected void TestItDump(string sbCode, string expectedCode, Func<string, string> extractCodeFunc = null)
+        protected void TestItDump(string sbCode, string expectedCode, Func<string, string> extractCodeFunc = null, bool doOptimization = false)
         {
             Parser parser = new Parser();
             using (StringReader stringReader = new StringReader(sbCode))
@@ -96,7 +99,7 @@ namespace EV3BasicCompiler.Tests
             true.Should().BeFalse();
         }
 
-        protected void TestItOld(string sbCode, string expectedCode, Func<string, string> extractCodeFunc)
+        protected void TestItOld(string sbCode, string expectedCode, Func<string, string> extractCodeFunc, bool doOptimization = false)
         {
             sbCode = Regex.Replace(sbCode, @"[ \r\n\t]*'PRAGMA", "'PRAGMA");
             using (MemoryStream fs = new MemoryStream(Encoding.ASCII.GetBytes(sbCode)))
@@ -219,8 +222,11 @@ namespace EV3BasicCompiler.Tests
             return Regex.Replace(line, "//.*", "").Trim();
         }
 
-        protected void TestCompileFailure(string sbCode, string message, int line, int column)
+        protected void TestCompileFailure(string sbCode, string message, int line, int column, bool doOptimization = false)
         {
+            if (!doOptimization)
+                sbCode = "'PRAGMA NOOPTIMIZATION" + Environment.NewLine + sbCode;
+
             using (EV3Compiler compiler = new EV3Compiler())
             using (StringReader stringReader = new StringReader(sbCode))
             using (StringWriter writer = new StringWriter())
@@ -233,8 +239,28 @@ namespace EV3BasicCompiler.Tests
             }
         }
 
-        protected void TestCompileFailure(string sbCode)
+        protected void TestCompileFailure(string sbCode, string message, bool doOptimization = false)
         {
+            if (!doOptimization)
+                sbCode = "'PRAGMA NOOPTIMIZATION" + Environment.NewLine + sbCode;
+
+            using (EV3Compiler compiler = new EV3Compiler())
+            using (StringReader stringReader = new StringReader(sbCode))
+            using (StringWriter writer = new StringWriter())
+            {
+                compiler.Compile(stringReader, writer);
+
+                Console.WriteLine(compiler.Dump());
+
+                compiler.Errors.Should().Contain(e => e.Message == message);
+            }
+        }
+
+        protected void TestCompileFailure(string sbCode, bool doOptimization = false)
+        {
+            if (!doOptimization)
+                sbCode = "'PRAGMA NOOPTIMIZATION" + Environment.NewLine + sbCode;
+
             using (EV3Compiler compiler = new EV3Compiler())
             using (StringReader stringReader = new StringReader(sbCode))
             using (StringWriter writer = new StringWriter())

@@ -8,11 +8,11 @@ namespace EV3BasicCompiler.Compilers
 {
     public abstract class ExpressionCompiler<T> : IExpressionCompiler where T : SBExpression
     {
-        protected EV3Type type;
-        protected bool? isLiteral;
-        protected string value;
-        protected bool? canCompileBoolean;
-        protected bool? booleanValue;
+        private EV3Type type;
+        private bool? isLiteral;
+        private string value;
+        private bool? canCompileBoolean;
+        private bool? booleanValue;
 
         public EV3CompilerContext Context { get; }
         protected T ParentExpression { get; }
@@ -25,7 +25,7 @@ namespace EV3BasicCompiler.Compilers
             value = null;
         }
 
-        public EV3Type Type
+        public virtual EV3Type Type
         {
             get
             {
@@ -34,16 +34,16 @@ namespace EV3BasicCompiler.Compilers
             }
         }
 
-        public bool IsLiteral
+        public virtual bool IsLiteral
         {
             get
             {
-                if (!isLiteral.HasValue) CalculateIsLiteral();
+                if (!isLiteral.HasValue) isLiteral = CalculateIsLiteral();
                 return isLiteral.GetValueOrDefault();
             }
         }
 
-        public string Value
+        public virtual string Value
         {
             get
             {
@@ -52,39 +52,39 @@ namespace EV3BasicCompiler.Compilers
             }
         }
 
-        public bool CanCompileBoolean
+        public virtual bool CanCompileBoolean
         {
             get
             {
-                if (!canCompileBoolean.HasValue) CalculateCanCompileBoolean();
+                if (!canCompileBoolean.HasValue) canCompileBoolean = CalculateCanCompileBoolean();
                 return canCompileBoolean.GetValueOrDefault();
             }
         }
 
-        public bool BooleanValue
+        public virtual bool BooleanValue
         {
             get
             {
-                if (!booleanValue.HasValue) CalculateBooleanValue();
+                if (!booleanValue.HasValue) booleanValue = CalculateBooleanValue();
                 return booleanValue.GetValueOrDefault();
             }
         }
 
         protected void EnsureType()
         {
-            if (type == EV3Type.Unknown) CalculateType();
+            if (type == EV3Type.Unknown) type = CalculateType();
         }
 
         protected void EnsureValue()
         {
-            if (value == null) CalculateValue();
+            if (value == null) value = CalculateValue();
         }
 
-        protected abstract void CalculateType();
-        protected virtual void CalculateIsLiteral() => isLiteral = false;
-        protected abstract void CalculateValue();
-        protected virtual void CalculateCanCompileBoolean() => canCompileBoolean = (Type == EV3Type.Boolean) || (Type == EV3Type.String);
-        protected virtual void CalculateBooleanValue() => booleanValue = false;
+        protected abstract EV3Type CalculateType();
+        protected virtual bool CalculateIsLiteral() => false;
+        protected virtual string CalculateValue() => null;
+        protected virtual bool CalculateCanCompileBoolean() => (Type == EV3Type.Boolean) || (Type == EV3Type.String);
+        protected virtual bool CalculateBooleanValue() => false;
 
         public abstract string Compile(TextWriter writer, IEV3Variable variable);
 
@@ -94,11 +94,18 @@ namespace EV3BasicCompiler.Compilers
 
             if (compiler.Type.BaseType().IsNumber() && resultType.BaseType() == EV3Type.String)
             {
-                IEV3Variable outputVariable = tempVariables.CreateVariable(EV3Type.String);
+                if (compiler.IsLiteral)
+                {
+                    return "'" + SmallBasicExtensions.FormatFloat(value) + "'";
+                }
+                else
+                {
+                    IEV3Variable outputVariable = tempVariables.CreateVariable(EV3Type.String);
 
-                writer.WriteLine($"    STRINGS VALUE_FORMATTED {value} '%g' 99 {outputVariable.Ev3Name}");
+                    writer.WriteLine($"    STRINGS VALUE_FORMATTED {value} '%g' 99 {outputVariable.Ev3Name}");
 
-                return outputVariable.Ev3Name;
+                    return outputVariable.Ev3Name;
+                }
             }
             else
                 return value;

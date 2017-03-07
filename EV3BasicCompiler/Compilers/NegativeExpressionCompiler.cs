@@ -11,28 +11,29 @@ namespace EV3BasicCompiler.Compilers
         {
         }
 
-        protected override void CalculateType()
+        protected override EV3Type CalculateType()
         {
-            type = ParentExpression.Expression.Compiler().Type;
+            return ParentExpression.Expression.Compiler().Type;
         }
 
-        protected override void CalculateValue()
+        protected override string CalculateValue()
         {
             if (Type.IsNumber())
             {
                 if (IsLiteral)
-                    value = SmallBasicExtensions.FormatFloat(-SmallBasicExtensions.ParseFloat(ParentExpression.Expression.Compiler().Value));
+                    return SmallBasicExtensions.FormatFloat(-SmallBasicExtensions.ParseFloat(ParentExpression.Expression.Compiler().Value));
             }
             else
                 AddError("Need number after minus");
+            return null;
         }
 
-        protected override void CalculateIsLiteral()
+        protected override bool CalculateIsLiteral()
         {
-            isLiteral = ParentExpression.Expression.Compiler().IsLiteral;
+            return ParentExpression.Expression.Compiler().IsLiteral;
         }
 
-        protected override void CalculateCanCompileBoolean() => canCompileBoolean = false;
+        protected override bool CalculateCanCompileBoolean() => false;
 
         public override string Compile(TextWriter writer, IEV3Variable variable)
         {

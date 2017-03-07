@@ -11,13 +11,13 @@ namespace EV3BasicCompiler.Compilers
         {
         }
 
-        public override void Compile(TextWriter writer)
+        public override void Compile(TextWriter writer, bool isRootStatement)
         {
         }
 
-        public void CompileStatements(TextWriter writer)
+        public void CompileStatements(TextWriter writer, bool isRootStatement)
         {
-            ParentStatement.ThenStatements.Compile(writer);
+            ParentStatement.ThenStatements.Compile(writer, isRootStatement);
         }
 
         public bool IsAlwaysFalse { get { return IsLiteralCondition() && !ConditionCompiler.BooleanValue; } }

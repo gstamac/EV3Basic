@@ -11,20 +11,27 @@ namespace EV3BasicCompiler.Compilers
             index = -2;
         }
 
-        protected override void CalculateType()
+        protected override EV3Type CalculateType()
         {
-            EV3Variable reference = Context.FindVariable(VariableName);
-            type = reference.Type;
+            return Variable.Type;
         }
 
-        protected override void CalculateValue()
+        protected override bool CalculateIsLiteral()
         {
-            IEV3Variable reference = Context.FindVariable(VariableName);
+            return Variable.IsConstant; 
+        }
 
-            if (reference != null)
-                value = reference.Ev3Name;
+        protected override string CalculateValue()
+        {
+            if (Variable != null)
+            {
+                if (IsLiteral)
+                    return Variable.Value;
+                else
+                    return Variable.Ev3Name;
+            }
             else
-                value = VariableName;
+                return VariableName;
         }
 
         public override string Compile(TextWriter writer, IEV3Variable variable)
@@ -84,6 +91,17 @@ namespace EV3BasicCompiler.Compilers
             }
         }
 
+        private EV3Variable variable;
+        public EV3Variable Variable
+        {
+            get
+            {
+                if (variable == null)
+                    variable = Context.FindVariable(VariableName);
+                return variable;
+            }
+        }
+
         private int index;
         public int Index
         {
@@ -91,11 +109,12 @@ namespace EV3BasicCompiler.Compilers
             {
                 if (index == -2)
                 {
-                    EV3Variable reference = Context.FindVariable(VariableName);
-                    index = reference.MaxIndex;
+                    index = Variable.MaxIndex;
                 }
                 return index;
             }
         }
+
+        public bool IsArray => Type.IsArray();
     }
 }

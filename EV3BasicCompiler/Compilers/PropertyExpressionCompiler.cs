@@ -10,17 +10,19 @@ namespace EV3BasicCompiler.Compilers
         {
         }
 
-        protected override void CalculateType()
+        protected override EV3Type CalculateType()
         {
             string propertyName = ParentExpression.FullName().ToUpper();
             EV3SubDefinitionBase sub = Context.FindSubroutine(propertyName);
             if (sub != null)
-                type = sub.ReturnType;
+                return sub.ReturnType;
+
+            return EV3Type.Unknown;
         }
 
-        protected override void CalculateValue()
+        protected override string CalculateValue()
         {
-            value = ParentExpression.FullName().ToUpper();
+            return ParentExpression.FullName().ToUpper();
         }
 
         public override string Compile(TextWriter writer, IEV3Variable variable)

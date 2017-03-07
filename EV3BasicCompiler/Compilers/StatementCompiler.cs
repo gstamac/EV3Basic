@@ -16,7 +16,7 @@ namespace EV3BasicCompiler.Compilers
             Context = context;
         }
 
-        public abstract void Compile(TextWriter writer);
+        public abstract void Compile(TextWriter writer, bool isRootStatement);
 
         protected void AddError(string message) => AddError(message, ParentStatement.StartToken);
         protected void AddError(string message, TokenInfo tokenInfo) => Context.AddError(message, tokenInfo);

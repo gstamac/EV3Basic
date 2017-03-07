@@ -12,9 +12,9 @@ namespace EV3BasicCompiler.Compilers
             Ev3Name = statement.SubroutineName.NormalizedText.ToUpper();
         }
 
-        public override void Compile(TextWriter writer)
+        public override void Compile(TextWriter writer, bool isRootStatement)
         {
-            ParentStatement.SubroutineBody.Compile(writer);
+            ParentStatement.SubroutineBody.Compile(writer, false);
             writer.WriteLine("    SUB8 STACKPOINTER 1 STACKPOINTER");
             writer.WriteLine("    READ32 RETURNSTACK STACKPOINTER INDEX");
             writer.WriteLine("    JR_DYNAMIC INDEX");

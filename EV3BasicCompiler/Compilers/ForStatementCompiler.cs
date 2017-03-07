@@ -11,10 +11,15 @@ namespace EV3BasicCompiler.Compilers
         {
         }
 
-        public override void Compile(TextWriter writer)
+        public override void Compile(TextWriter writer, bool isRootStatement)
         {
             string label = Context.GetNextLabelNumber().ToString();
             EV3Variable variable = Context.FindVariable(ParentStatement);
+
+            if (variable.Type == EV3Type.Unknown)
+                variable.Type = EV3Type.Float;
+            variable.IsConstant = false;
+
             IExpressionCompiler stepCompiler = ParentStatement.StepValue == null ? null : ParentStatement.StepValue.Compiler();
             using (var tempVariables = Context.UseTempVariables())
             {
@@ -41,7 +46,7 @@ namespace EV3BasicCompiler.Compilers
             using (var tempVariables = Context.UseTempVariables())
             {
                 writer.WriteLine($"  forbody{label}:");
-                ParentStatement.ForBody.Compile(writer);
+                ParentStatement.ForBody.Compile(writer, false);
                 string stepValue = stepCompiler == null ? "1.0" : stepCompiler.Compile(writer, tempVariables.CreateVariable(EV3Type.Float));
                 writer.WriteLine($"    ADDF {variable.Ev3Name} {stepValue} {variable.Ev3Name}");
                 string finalValue2 = ParentStatement.FinalValue.Compiler().Compile(writer, tempVariables.CreateVariable(EV3Type.Float));

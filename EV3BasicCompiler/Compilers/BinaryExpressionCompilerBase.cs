@@ -12,9 +12,9 @@ namespace EV3BasicCompiler.Compilers
         {
         }
 
-        protected override void CalculateIsLiteral()
+        protected override bool CalculateIsLiteral()
         {
-            EnsureValue();
+            return Value != null;
         }
 
         protected EV3Type CalculateCommonType(EV3Type type1, EV3Type type2)

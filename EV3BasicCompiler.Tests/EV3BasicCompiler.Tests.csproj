@@ -67,6 +67,7 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
+    <Compile Include="VariableOptimizationTests.cs" />
     <Compile Include="ElseTests.cs" />
     <Compile Include="EV3CompilerTestsBase.cs" />
     <Compile Include="IfElseIfTests.cs" />

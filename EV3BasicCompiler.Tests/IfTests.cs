@@ -806,7 +806,7 @@ namespace EV3BasicCompiler.Tests
                 If (1 = ""X"") Then
                     Buttons.Wait()
                 EndIf
-            ", "Boolean operations on unrelated types are not permited", 2, 20);
+            ", "Boolean operations on unrelated types are not permited");
         }
 
         [TestMethod]
@@ -817,7 +817,7 @@ namespace EV3BasicCompiler.Tests
                 If (i = i) Then
                     Buttons.Wait()
                 EndIf
-            ", "Boolean operations on arrays are not permited", 3, 20);
+            ", "Boolean operations on arrays are not permited");
         }
 
         [TestMethod]
@@ -827,7 +827,7 @@ namespace EV3BasicCompiler.Tests
                 If (""x"" > ""y"") Then
                     Buttons.Wait()
                 EndIf
-            ", "Only (non)equality comparison is permited on strings", 2, 20);
+            ", "Only (non)equality comparison is permited on strings");
         }
 
         [TestMethod]
@@ -837,7 +837,7 @@ namespace EV3BasicCompiler.Tests
                 If (""x"" >= ""y"") Then
                     Buttons.Wait()
                 EndIf
-            ", "Only (non)equality comparison is permited on strings", 2, 20);
+            ", "Only (non)equality comparison is permited on strings");
         }
 
         [TestMethod]
@@ -847,7 +847,7 @@ namespace EV3BasicCompiler.Tests
                 If (""x"" < ""y"") Then
                     Buttons.Wait()
                 EndIf
-            ", "Only (non)equality comparison is permited on strings", 2, 20);
+            ", "Only (non)equality comparison is permited on strings");
         }
 
         [TestMethod]
@@ -857,7 +857,7 @@ namespace EV3BasicCompiler.Tests
                 If (""x"" <= ""y"") Then
                     Buttons.Wait()
                 EndIf
-            ", "Only (non)equality comparison is permited on strings", 2, 20);
+            ", "Only (non)equality comparison is permited on strings");
         }
     }
 }

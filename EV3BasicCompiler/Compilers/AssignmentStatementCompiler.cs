@@ -9,13 +9,21 @@ namespace EV3BasicCompiler.Compilers
         {
         }
 
-        public override void Compile(TextWriter writer)
+        public override void Compile(TextWriter writer, bool isRootStatement)
         {
             IAssignmentExpressionCompiler variableCompiler = ParentStatement.LeftValue.Compiler<IAssignmentExpressionCompiler>();
             if (variableCompiler != null)
             {
                 EV3Variable variable = Context.FindVariable(variableCompiler.VariableName);
                 IExpressionCompiler valueCompiler = ParentStatement.RightValue.Compiler();
+
+                if (variable.Type == EV3Type.Unknown)
+                {
+                    variable.Type = valueCompiler.Type;
+                    if (variableCompiler.IsArray)
+                        variable.Type = variable.Type.ConvertToArray();
+                }
+                variable.IsConstant &= isRootStatement && Context.DoOptimization && valueCompiler.IsLiteral && !variable.Type.IsArray();
 
                 if (variable.Type.IsArray())
                 {
@@ -41,29 +49,39 @@ namespace EV3BasicCompiler.Compilers
                 }
                 else if (valueCompiler.Type.IsNumber() && variableCompiler.Type == EV3Type.String && !variable.Type.IsArray())
                 {
-                    using (var tempVariables = Context.UseTempVariables())
+                    if (variable.IsConstant)
+                        variable.Value = valueCompiler.Value;
+                    else
                     {
-                        IEV3Variable tempVariable = tempVariables.CreateVariable(valueCompiler.Type);
-                        string compiledValue = valueCompiler.Compile(writer, tempVariable);
-                        if (string.IsNullOrEmpty(compiledValue)) return;
+                        using (var tempVariables = Context.UseTempVariables())
+                        {
+                            IEV3Variable tempVariable = tempVariables.CreateVariable(valueCompiler.Type);
+                            string compiledValue = valueCompiler.Compile(writer, tempVariable);
+                            if (string.IsNullOrEmpty(compiledValue)) return;
 
-                        writer.WriteLine($"    STRINGS VALUE_FORMATTED {compiledValue} '%g' 99 {variable.Ev3Name}");
+                            writer.WriteLine($"    STRINGS VALUE_FORMATTED {compiledValue} '%g' 99 {variable.Ev3Name}");
+                        }
                     }
                 }
                 else
                 {
-                    string compiledValue = valueCompiler.Compile(writer, variable);
-                    if (string.IsNullOrEmpty(compiledValue)) return;
-
-                    using (var tempVariables = Context.UseTempVariables())
+                    if (variable.IsConstant)
+                        variable.Value = valueCompiler.Value;
+                    else
                     {
-                        if (valueCompiler.Type.IsNumber() && variable.Type == EV3Type.StringArray)
+                        string compiledValue = valueCompiler.Compile(writer, variable);
+                        if (string.IsNullOrEmpty(compiledValue)) return;
+
+                        using (var tempVariables = Context.UseTempVariables())
                         {
-                            IEV3Variable tempVariable = tempVariables.CreateVariable(EV3Type.String);
-                            writer.WriteLine($"    STRINGS VALUE_FORMATTED {compiledValue} '%g' 99 {tempVariable.Ev3Name}");
-                            compiledValue = tempVariable.Ev3Name;
+                            if (valueCompiler.Type.IsNumber() && variable.Type == EV3Type.StringArray)
+                            {
+                                IEV3Variable tempVariable = tempVariables.CreateVariable(EV3Type.String);
+                                writer.WriteLine($"    STRINGS VALUE_FORMATTED {compiledValue} '%g' 99 {tempVariable.Ev3Name}");
+                                compiledValue = tempVariable.Ev3Name;
+                            }
+                            variableCompiler.CompileAssignment(writer, compiledValue, variable.Ev3Name);
                         }
-                        variableCompiler.CompileAssignment(writer, compiledValue, variable.Ev3Name);
                     }
                 }
             }

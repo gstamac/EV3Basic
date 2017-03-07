@@ -83,6 +83,46 @@ namespace EV3BasicCompiler.Tests
         }
 
         [TestMethod]
+        public void ShouldConvertParameters_WhenExecutingInlineMethod()
+        {
+            TestIt(@"
+                Motor.Wait(EV3.BatteryLevel)
+            ", @"
+                CALL EV3.BATTERYLEVEL F0
+                STRINGS VALUE_FORMATTED F0 '%g' 99 S0
+                DATA8 layer0
+                DATA8 nos0
+                DATA8 busy0
+                CALL MOTORDECODEPORTSDESCRIPTOR S0 layer0 nos0
+              motorwaiting0:
+                OUTPUT_TEST layer0 nos0 busy0
+                JR_EQ8 busy0 0 motornotbusy0
+                SLEEP
+                JR motorwaiting0
+              motornotbusy0:
+            ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
+        public void ShouldConvertParameters_WhenExecutinginlineMethodWithConstant()
+        {
+            TestIt(@"
+                Motor.Wait(1)
+            ", @"
+                DATA8 layer0
+                DATA8 nos0
+                DATA8 busy0
+                CALL MOTORDECODEPORTSDESCRIPTOR '1.0' layer0 nos0
+              motorwaiting0:
+                OUTPUT_TEST layer0 nos0 busy0
+                JR_EQ8 busy0 0 motornotbusy0
+                SLEEP
+                JR motorwaiting0
+              motornotbusy0:
+            ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
         public void ShouldConvertParameters_WhenExecutingExternalMethod()
         {
             TestIt(@"
@@ -95,11 +135,31 @@ namespace EV3BasicCompiler.Tests
         }
 
         [TestMethod]
+        public void ShouldConvertParameters_WhenExecutingExternalMethodWithConstant()
+        {
+            TestIt(@"
+                LCD.Text(1, 50, 50, 2, 10)
+            ", @"
+                CALL LCD.TEXT 1.0 50.0 50.0 2.0 '10.0'
+            ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
+        [Ignore]
+        public void ShouldIgnoreTextWindowMethods()  // NEW!!!!!
+        {
+            TestIt(@"
+                TextWindow.WriteLine(""X"")
+            ", @"
+            ", ExtractMainProgramCode);
+        }
+
+        [TestMethod]
         public void ShouldFailExecutingExternalMethod_WhenNotEnoughParameters()
         {
             TestCompileFailure(@"
                 Sensor.ReadRaw(1)
-            ", "Incorrect number of parameters. Expected 2.", 2, 17);
+            ", "Incorrect number of parameters. Expected 2.");
         }
 
         [TestMethod]
@@ -107,7 +167,7 @@ namespace EV3BasicCompiler.Tests
         {
             TestCompileFailure(@"
                 Sensor.ReadRaw(1, 3, 5)
-            ", "Incorrect number of parameters. Expected 2.", 2, 17);
+            ", "Incorrect number of parameters. Expected 2.");
         }
 
         [TestMethod]
@@ -115,7 +175,7 @@ namespace EV3BasicCompiler.Tests
         {
             TestCompileFailure(@"
                 Mailbox.Receive()
-            ", "Incorrect number of parameters. Expected 1.", 2, 17);
+            ", "Incorrect number of parameters. Expected 1.");
         }
 
         [TestMethod]
@@ -123,7 +183,7 @@ namespace EV3BasicCompiler.Tests
         {
             TestCompileFailure(@"
                 Mailbox.Receive(1, 3)
-            ", "Incorrect number of parameters. Expected 1.", 2, 17);
+            ", "Incorrect number of parameters. Expected 1.");
         }
 
         [TestMethod]

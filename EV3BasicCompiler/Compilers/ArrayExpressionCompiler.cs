@@ -12,61 +12,51 @@ namespace EV3BasicCompiler.Compilers
             index = -1;
         }
 
-        protected override void CalculateType()
+        protected override EV3Type CalculateType()
         {
-            EV3Variable reference = Context.FindVariable(VariableName);
-            if (reference.Type != EV3Type.Unknown && !reference.Type.IsArray())
+            if (Variable.Type != EV3Type.Unknown && !Variable.Type.IsArray())
                 AddError($"Cannot use index on non-array variable '{VariableName}'");
 
-            type = reference.Type.BaseType();
             index = ParentExpression.Index();
 
-            reference.UpdateMaxIndex(index);
-        }
+            Variable.UpdateMaxIndex(index);
 
-        protected override void CalculateValue()
-        {
+            return Variable.Type.BaseType();
         }
 
         public override string Compile(TextWriter writer, IEV3Variable variable)
         {
-            IEV3Variable reference = Context.FindVariable(VariableName);
-
-            if (reference != null)
+            using (var tempVariables = Context.UseTempVariables())
             {
-                using (var tempVariables = Context.UseTempVariables())
+                IExpressionCompiler indexCompiler = ParentExpression.Indexer.Compiler();
+                string indexValue = indexCompiler.Compile(writer, tempVariables.CreateVariable(EV3Type.Float));
+                if (variable.Ev3Name.Equals(Variable.Ev3Name, StringComparison.InvariantCultureIgnoreCase) ||
+                    variable.Type != Type.BaseType())
                 {
-                    IExpressionCompiler indexCompiler = ParentExpression.Indexer.Compiler();
-                    string indexValue = indexCompiler.Compile(writer, tempVariables.CreateVariable(EV3Type.Float));
-                    if (variable.Ev3Name.Equals(reference.Ev3Name, StringComparison.InvariantCultureIgnoreCase) ||
-                        variable.Type != Type.BaseType())
-                    {
-                        variable = tempVariables.CreateVariable(Type.BaseType());
-                    }
-                    if (variable.Type == EV3Type.String)
-                        writer.WriteLine($"    CALL ARRAYGET_STRING {indexValue} {variable.Ev3Name} {reference.Ev3Name}");
+                    variable = tempVariables.CreateVariable(Type.BaseType());
+                }
+                if (variable.Type == EV3Type.String)
+                    writer.WriteLine($"    CALL ARRAYGET_STRING {indexValue} {variable.Ev3Name} {Variable.Ev3Name}");
+                else
+                {
+                    if (Context.DoBoundsCheck)
+                        writer.WriteLine($"    CALL ARRAYGET_FLOAT {indexValue} {variable.Ev3Name} {Variable.Ev3Name}");
                     else
                     {
-                        if (Context.DoBoundsCheck)
-                            writer.WriteLine($"    CALL ARRAYGET_FLOAT {indexValue} {variable.Ev3Name} {reference.Ev3Name}");
+                        if (indexCompiler.IsLiteral)
+                        {
+                            if (indexValue.EndsWith(".0")) indexValue = indexValue.Remove(indexValue.Length - 2);
+                        }
                         else
                         {
-                            if (indexCompiler.IsLiteral)
-                            {
-                                if (indexValue.EndsWith(".0")) indexValue = indexValue.Remove(indexValue.Length - 2);
-                            }
-                            else
-                            {
-                                writer.WriteLine($"    MOVEF_32 {indexValue} INDEX");
-                                indexValue = "INDEX";
-                            }
-                            writer.WriteLine($"    ARRAY_READ {reference.Ev3Name} {indexValue} {variable.Ev3Name}");
+                            writer.WriteLine($"    MOVEF_32 {indexValue} INDEX");
+                            indexValue = "INDEX";
                         }
+                        writer.WriteLine($"    ARRAY_READ {Variable.Ev3Name} {indexValue} {variable.Ev3Name}");
                     }
-                    return variable.Ev3Name;
                 }
+                return variable.Ev3Name;
             }
-            return "";
         }
 
         public void CompileAssignment(TextWriter writer, string compiledValue, string outputName)
@@ -126,5 +116,18 @@ namespace EV3BasicCompiler.Compilers
                 return _variableName;
             }
         }
+
+        private EV3Variable variable;
+        public EV3Variable Variable
+        {
+            get
+            {
+                if (variable == null)
+                    variable = Context.FindVariable(VariableName);
+                return variable;
+            }
+        }
+
+        public bool IsArray => true;
     }
 }

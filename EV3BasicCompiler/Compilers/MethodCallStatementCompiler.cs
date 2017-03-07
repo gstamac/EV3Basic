@@ -12,7 +12,7 @@ namespace EV3BasicCompiler.Compilers
         {
         }
 
-        public override void Compile(TextWriter writer)
+        public override void Compile(TextWriter writer, bool isRootStatement)
         {
             IExpressionCompiler expressionCompiler = ParentStatement.MethodCallExpression.Compiler();
             using (var tempVariables = Context.UseTempVariables())

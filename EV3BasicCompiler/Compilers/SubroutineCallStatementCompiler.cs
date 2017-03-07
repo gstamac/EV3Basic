@@ -12,7 +12,7 @@ namespace EV3BasicCompiler.Compilers
             Ev3Name = statement.SubroutineName.NormalizedText.ToUpper();
         }
 
-        public override void Compile(TextWriter writer)
+        public override void Compile(TextWriter writer, bool isRootStatement)
         {
             int label = Context.GetNextLabelNumber();
             writer.WriteLine($"    WRITE32 ENDSUB_{Ev3Name}:CALLSUB{label} STACKPOINTER RETURNSTACK");

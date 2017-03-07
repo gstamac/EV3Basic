@@ -12,24 +12,22 @@ namespace EV3BasicCompiler.Compilers
         {
         }
 
-        protected override void CalculateType()
+        protected override EV3Type CalculateType()
         {
             if (!CanCompileBoolean)
             {
-                type = EV3Type.Void;
+                return EV3Type.Void;
             }
             else
-                type = EV3Type.Boolean;
+                return EV3Type.Boolean;
         }
 
-        protected override void CalculateValue()
+        protected override string CalculateValue()
         {
-            if (Type != EV3Type.Boolean) return;
+            if (Type != EV3Type.Boolean) return null;
 
             if (LeftCompiler.IsLiteral && RightCompiler.IsLiteral)
             {
-                isLiteral = true;
-
                 if (LeftCompiler.Type.IsNumber())
                 {
                     float leftValue = SmallBasicExtensions.ParseFloat(LeftCompiler.Value);
@@ -38,23 +36,17 @@ namespace EV3BasicCompiler.Compilers
                     switch (ParentExpression.Operator.Token)
                     {
                         case Token.Equals:
-                            value = SmallBasicExtensions.FormatBoolean(leftValue == rightValue);
-                            break;
+                            return SmallBasicExtensions.FormatBoolean(leftValue == rightValue);
                         case Token.NotEqualTo:
-                            value = SmallBasicExtensions.FormatBoolean(leftValue != rightValue);
-                            break;
+                            return SmallBasicExtensions.FormatBoolean(leftValue != rightValue);
                         case Token.LessThan:
-                            value = SmallBasicExtensions.FormatBoolean(leftValue < rightValue);
-                            break;
+                            return SmallBasicExtensions.FormatBoolean(leftValue < rightValue);
                         case Token.LessThanEqualTo:
-                            value = SmallBasicExtensions.FormatBoolean(leftValue <= rightValue);
-                            break;
+                            return SmallBasicExtensions.FormatBoolean(leftValue <= rightValue);
                         case Token.GreaterThan:
-                            value = SmallBasicExtensions.FormatBoolean(leftValue > rightValue);
-                            break;
+                            return SmallBasicExtensions.FormatBoolean(leftValue > rightValue);
                         case Token.GreaterThanEqualTo:
-                            value = SmallBasicExtensions.FormatBoolean(leftValue >= rightValue);
-                            break;
+                            return SmallBasicExtensions.FormatBoolean(leftValue >= rightValue);
                     }
                 }
                 else
@@ -62,19 +54,17 @@ namespace EV3BasicCompiler.Compilers
                     switch (ParentExpression.Operator.Token)
                     {
                         case Token.Equals:
-                            value = SmallBasicExtensions.FormatBoolean(LeftCompiler.Value == RightCompiler.Value);
-                            break;
+                            return SmallBasicExtensions.FormatBoolean(LeftCompiler.Value == RightCompiler.Value);
                         case Token.NotEqualTo:
-                            value = SmallBasicExtensions.FormatBoolean(LeftCompiler.Value != RightCompiler.Value);
-                            break;
+                            return SmallBasicExtensions.FormatBoolean(LeftCompiler.Value != RightCompiler.Value);
                     }
                 }
             }
+            return null;
         }
 
-        protected override void CalculateCanCompileBoolean()
+        protected override bool CalculateCanCompileBoolean()
         {
-            canCompileBoolean = false;
             if (LeftCompiler.Type != RightCompiler.Type)
                 AddError("Boolean operations on unrelated types are not permited");
             else if (LeftCompiler.Type.IsArray() || RightCompiler.Type.IsArray())
@@ -82,12 +72,13 @@ namespace EV3BasicCompiler.Compilers
             else if (LeftCompiler.Type == EV3Type.String && ParentExpression.Operator.Token != Token.Equals && ParentExpression.Operator.Token != Token.NotEqualTo)
                 AddError("Only (non)equality comparison is permited on strings");
             else
-                canCompileBoolean = true;
+                return true;
+            return false;
         }
 
-        protected override void CalculateBooleanValue()
+        protected override bool CalculateBooleanValue()
         {
-            booleanValue = "'true'".Equals(Value, StringComparison.InvariantCultureIgnoreCase);
+            return "'true'".Equals(Value, StringComparison.InvariantCultureIgnoreCase);
         }
 
         public override string Compile(TextWriter writer, IEV3Variable variable)

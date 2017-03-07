@@ -52,7 +52,7 @@ namespace EV3BasicCompiler
             else if (statement is SubroutineStatement)
                 statement.AttachCompiler(new SubroutineStatementCompiler((SubroutineStatement)statement, context));
             else if (statement is EmptyStatement)
-                statement.AttachCompiler(new EmptyStatementCompiler((EmptyStatement)statement, context));
+                statement.AttachCompiler(new DummyStatementCompiler((EmptyStatement)statement, context));
             else if (statement is IllegalStatement)
                 statement.AttachCompiler(new DummyStatementCompiler((IllegalStatement)statement, context));
             else
@@ -65,7 +65,7 @@ namespace EV3BasicCompiler
             {
             }
 
-            public override void Compile(TextWriter writer)
+            public override void Compile(TextWriter writer, bool isRootStatement)
             {
             }
         }
@@ -148,15 +148,10 @@ namespace EV3BasicCompiler
             return expressionCompilers[expression] as T;
         }
 
-        public static void Compile(this IEnumerable<Statement> statements, TextWriter writer)
+        public static void Compile(this IEnumerable<Statement> statements, TextWriter writer, bool isRootStatement)
         {
             foreach (Statement statement in statements)
-                statement.Compile(writer);
-        }
-
-        public static void Compile(this Statement statement, TextWriter writer)
-        {
-            statement.Compiler().Compile(writer);
+                statement.Compiler().Compile(writer, isRootStatement);
         }
 
         public static IEnumerable<T> GetStatements<T>(this Parser parser) where T : Statement
@@ -183,7 +178,7 @@ namespace EV3BasicCompiler
             }
         }
 
-        private static IEnumerable<Statement> GetSubStatements(this Statement statement)
+        public static IEnumerable<Statement> GetSubStatements(this Statement statement)
         {
             if (statement is IfStatement)
             {

@@ -476,5 +476,18 @@ namespace EV3BasicCompiler.Tests
             ", ExtractMainProgramCode);
         }
 
+        [TestMethod]
+        [Ignore]
+        public void IgnoreEmptyLoops()
+        {
+            Assert.IsTrue(false);
+        }
+
+        [TestMethod]
+        [Ignore]
+        public void GotoStatemementTests()
+        {
+            Assert.IsTrue(false);
+        }
     }
 }

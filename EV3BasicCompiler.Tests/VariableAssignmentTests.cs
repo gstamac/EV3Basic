@@ -212,16 +212,14 @@ namespace EV3BasicCompiler.Tests
         }
 
         [TestMethod]
-        public void ShouldAssignString_WhenAssignedWithMixedFormula()
+        public void ShouldAssignString_WhenAssignedWithMixedFormula()       // NEW!!!!
         {
             TestIt(@"
                 i = ""X"" + 10
                 j = 10 + ""X""
             ", @"
-                STRINGS VALUE_FORMATTED 10.0 '%g' 99 S0
-                CALL TEXT.APPEND 'X' S0 VI
-                STRINGS VALUE_FORMATTED 10.0 '%g' 99 S0
-                CALL TEXT.APPEND S0 'X' VJ
+                STRINGS DUPLICATE 'X10.0' VI
+                STRINGS DUPLICATE '10.0X' VJ
             ", ExtractMainProgramCode);
         }
 
@@ -232,10 +230,8 @@ namespace EV3BasicCompiler.Tests
                 i = ""1"" + 10
                 j = 10 + ""1""
             ", @"
-                STRINGS VALUE_FORMATTED 10.0 '%g' 99 S0  
-                CALL TEXT.APPEND '1' S0 VI               
-                STRINGS VALUE_FORMATTED 10.0 '%g' 99 S0  
-                CALL TEXT.APPEND S0 '1' VJ                                          
+                STRINGS DUPLICATE '110.0' VI
+                STRINGS DUPLICATE '10.01' VJ
             ", ExtractMainProgramCode);
         }
 
@@ -563,12 +559,12 @@ namespace EV3BasicCompiler.Tests
                 MOVEF_32 F0 INDEX
                 ARRAY_READ VI INDEX VJ
             ", ExtractMainProgramCode);
-                // PREVIOUS
-                //MOVEF_F 3.0 VK
-                //ARRAY_WRITE VI 2 10.3
-                //ADDF VK 1.0 VJ
-                //MOVEF_32 VJ INDEX
-                //ARRAY_READ VI INDEX VJ
+            // PREVIOUS
+            //MOVEF_F 3.0 VK
+            //ARRAY_WRITE VI 2 10.3
+            //ADDF VK 1.0 VJ
+            //MOVEF_32 VJ INDEX
+            //ARRAY_READ VI INDEX VJ
         }
 
         [TestMethod]
@@ -674,7 +670,7 @@ namespace EV3BasicCompiler.Tests
         {
             TestCompileFailure(@"
                 i = -""X""
-            ", "Need number after minus", 2, 21);
+            ", "Need number after minus");
         }
 
         [TestMethod]
@@ -769,7 +765,7 @@ namespace EV3BasicCompiler.Tests
             TestCompileFailure(@"
                 i[2] = 10
                 i = 10
-            ", "Cannot assign value to array variable 'i' without index", 3, 17);
+            ", "Cannot assign value to array variable 'i' without index");
 
         }
 
@@ -779,7 +775,7 @@ namespace EV3BasicCompiler.Tests
             TestCompileFailure(@"
                 i = 10
                 i[2] = 10
-            ", "Cannot use index on non-array variable 'i'", 3, 17);
+            ", "Cannot use index on non-array variable 'i'");
         }
 
         [TestMethod]
@@ -789,7 +785,7 @@ namespace EV3BasicCompiler.Tests
                 i[2] = 10
                 j = 10
                 j = i
-            ", "Cannot assign array value to non-array variable 'j'", 4, 17);
+            ", "Cannot assign array value to non-array variable 'j'");
         }
 
         [TestMethod]
@@ -938,7 +934,7 @@ namespace EV3BasicCompiler.Tests
         }
 
         [TestMethod]
-        public void ShouldFail_WhenCombiningBooleanAndFloat() 
+        public void ShouldFail_WhenCombiningBooleanAndFloat()
         {
             TestCompileFailure(@"
                 j = 10
@@ -963,7 +959,7 @@ namespace EV3BasicCompiler.Tests
             TestCompileFailure(@"
                 i = 10
                 i = ""X""
-            ", "Cannot assign String value to Float variable 'i'", 3, 17);
+            ", "Cannot assign String value to Float variable 'i'");
         }
 
         [TestMethod]
@@ -981,7 +977,7 @@ namespace EV3BasicCompiler.Tests
         {
             TestCompileFailure(@"
                 raw = Sensor.ReadRawX(1, 8)
-            ", "Unknown method call to sensor.readrawx", 2, 23);
+            ", "Unknown method call to sensor.readrawx");
         }
 
         [TestMethod]
@@ -1012,7 +1008,7 @@ namespace EV3BasicCompiler.Tests
         {
             TestCompileFailure(@"
                 i = Buttons.CurrentX
-            ", "Unknown property buttons.currentx", 2, 21);
+            ", "Unknown property buttons.currentx");
         }
 
         [TestMethod]
@@ -1020,13 +1016,7 @@ namespace EV3BasicCompiler.Tests
         {
             TestCompileFailure(@"
                 Unknown.Property = 10
-            ", "Cannot assign value to this expression Unknown.Property", 2, 17);
-        }
-
-        [TestMethod]
-        public void OptimizeConstantAssignment()
-        {
-            Assert.IsTrue(false);
+            ", "Cannot assign value to this expression Unknown.Property");
         }
     }
 }

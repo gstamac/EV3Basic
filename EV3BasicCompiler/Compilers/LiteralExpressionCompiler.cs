@@ -14,45 +14,42 @@ namespace EV3BasicCompiler.Compilers
             maxIndex = -1;
         }
 
-        protected override void CalculateType()
+        protected override EV3Type CalculateType()
         {
             string valueString = ParentExpression.ToString();
             if (ParentExpression.IsNumericLiteral())
             {
-                type = EV3Type.Float;
+                return EV3Type.Float;
             }
             else
             {
                 Match match = Regex.Match(valueString, @"^""(?:[\d]+=[^;]*;)*([\d]+)=[^;]*[;]*""$");
                 if (match.Success)
                 {
-                    type = EV3Type.StringArray;
                     maxIndex = int.Parse(match.Groups[1].Value);
+                    return EV3Type.StringArray;
                 }
                 else
                 {
-                    type = EV3Type.String;
+                    return EV3Type.String;
                 }
             }
         }
 
-        protected override void CalculateValue()
+        protected override string CalculateValue()
         {
             string valueString = ParentExpression.ToString();
             if (ParentExpression.IsNumericLiteral())
             {
-                value = SmallBasicExtensions.FormatFloat(valueString);
+                return SmallBasicExtensions.FormatFloat(valueString);
             }
             else
             {
-                value = valueString.Replace('"', '\'');
+                return valueString.Replace('"', '\'');
             }
         }
 
-        protected override void CalculateIsLiteral()
-        {
-            isLiteral = true;
-        }
+        protected override bool CalculateIsLiteral() => true;
 
         public override string Compile(TextWriter writer, IEV3Variable variable)
         {
@@ -68,9 +65,9 @@ namespace EV3BasicCompiler.Compilers
             return Value;
         }
 
-        protected override void CalculateBooleanValue()
+        protected override bool CalculateBooleanValue()
         {
-            booleanValue = "'true'".Equals(Value, StringComparison.InvariantCultureIgnoreCase);
+            return "'true'".Equals(Value, StringComparison.InvariantCultureIgnoreCase);
         }
 
         public void CompileBranch(TextWriter writer, string label)

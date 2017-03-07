@@ -12,43 +12,45 @@ namespace EV3BasicCompiler.Compilers
         {
         }
 
-        protected override void CalculateType()
+        protected override EV3Type CalculateType()
         {
             if (!CanCompileBoolean)
             {
-                type = EV3Type.Void;
+                return EV3Type.Void;
             }
             else
-                type = EV3Type.Boolean;
+                return EV3Type.Boolean;
         }
 
-        protected override void CalculateValue()
+        protected override string CalculateValue()
         {
-            if (Type != EV3Type.Boolean) return;
+            if (Type != EV3Type.Boolean) return null;
 
             if (LeftCompiler.IsLiteral && RightCompiler.IsLiteral)
             {
-                isLiteral = true;
                 if (ParentExpression.Operator.Token == Token.And)
-                    value = SmallBasicExtensions.FormatBoolean(BooleanValue);
+                    return SmallBasicExtensions.FormatBoolean(BooleanValue);
                 else
-                    value = SmallBasicExtensions.FormatBoolean(BooleanValue);
+                    return SmallBasicExtensions.FormatBoolean(BooleanValue);
             }
+            return null;
         }
 
-        protected override void CalculateCanCompileBoolean()
+        protected override bool CalculateCanCompileBoolean()
         {
-            canCompileBoolean = LeftCompiler.CanCompileBoolean && RightCompiler.CanCompileBoolean;
-            if (!canCompileBoolean.Value)
-                AddError("Can only operate boolean operations on boolean values.");
+            if (LeftCompiler.CanCompileBoolean && RightCompiler.CanCompileBoolean)
+                return true;
+
+            AddError("Can only operate boolean operations on boolean values.");
+            return false;
         }
 
-        protected override void CalculateBooleanValue()
+        protected override bool CalculateBooleanValue()
         {
             if (ParentExpression.Operator.Token == Token.And)
-                booleanValue = LeftCompiler.BooleanValue && RightCompiler.BooleanValue;
+                return LeftCompiler.BooleanValue && RightCompiler.BooleanValue;
             else
-                booleanValue = LeftCompiler.BooleanValue || RightCompiler.BooleanValue;
+                return LeftCompiler.BooleanValue || RightCompiler.BooleanValue;
         }
 
         public override string Compile(TextWriter writer, IEV3Variable variable)

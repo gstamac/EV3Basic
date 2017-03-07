@@ -14,7 +14,7 @@ namespace EV3BasicCompiler.Compilers
             threadNumber = context.GetNextThreadNumber();
         }
 
-        public override void Compile(TextWriter writer)
+        public override void Compile(TextWriter writer, bool isRootStatement)
         {
             int label = Context.GetNextLabelNumber();
             writer.WriteLine($"    DATA32 tmp{label}");

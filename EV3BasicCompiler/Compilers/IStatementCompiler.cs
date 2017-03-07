@@ -6,6 +6,6 @@ namespace EV3BasicCompiler.Compilers
 {
     public interface IStatementCompiler
     {
-        void Compile(TextWriter writer);
+        void Compile(TextWriter writer, bool isRootStatement);
     }
 }

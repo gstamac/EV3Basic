@@ -7,6 +7,6 @@ namespace EV3BasicCompiler.Compilers
         IBooleanExpressionCompiler ConditionCompiler { get; }
         bool IsAlwaysFalse { get; }
         bool IsAlwaysTrue { get; }
-        void CompileStatements(TextWriter writer);
+        void CompileStatements(TextWriter writer, bool isRootStatement);
     }
 }

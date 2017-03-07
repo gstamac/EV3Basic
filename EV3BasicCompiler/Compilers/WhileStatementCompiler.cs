@@ -9,14 +9,14 @@ namespace EV3BasicCompiler.Compilers
         {
         }
 
-        public override void Compile(TextWriter writer)
+        public override void Compile(TextWriter writer, bool isRootStatement)
         {
             string label = Context.GetNextLabelNumber().ToString();
             writer.WriteLine($"  while{label}:");
             ConditionCompiler.CompileBranchNegated(writer, $"endwhile{label}");
             //JR_LTEQF VI 0.0 endwhile0
             writer.WriteLine($"  whilebody{label}:");
-            ParentStatement.WhileBody.Compile(writer);
+            ParentStatement.WhileBody.Compile(writer, false);
             //writer.WriteLine($"    JR whilebody{label}");
             // JR_GTF VI 0.0 whilebody0
             ConditionCompiler.CompileBranch(writer, $"whilebody{label}");

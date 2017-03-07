@@ -19,7 +19,7 @@ namespace EV3BasicCompiler
         private const int MAX_TEMP_VARIABLE_INDEX = 255;
 
         private Parser parser;
-        private readonly Dictionary<string, EV3Variable> variables;
+        private Dictionary<string, EV3Variable> variables;
         private readonly Dictionary<EV3Type, List<int>> tempVariablesCurrent;
         private readonly Dictionary<EV3Type, int> tempVariablesMax;
 
@@ -47,45 +47,15 @@ namespace EV3BasicCompiler
             }
         }
 
-        public void Process(Dictionary<string, EV3Type> subResultTypes)
+        public void Process()
         {
-            foreach (var variable in parser.SymbolTable.InitializedVariables)
-            {
-                variables.Add(variable.Key, new EV3Variable(variable.Key, variable.Value));
-            }
-            foreach (Statement statement in parser.GetStatements())
-            {
-                if (statement is AssignmentStatement)
-                    ProcessAssignmentStatement((AssignmentStatement)statement, subResultTypes);
-                else if (statement is ForStatement)
-                    ProcessForStatement((ForStatement)statement);
-            }
-        }
-
-        void ProcessAssignmentStatement(AssignmentStatement statement, Dictionary<string, EV3Type> subResultTypes)
-        {
-            EV3Variable variable = FindVariable(statement.LeftValue);
-            if (variable == null || variable.Type != EV3Type.Unknown) return;
-
-            IExpressionCompiler valueCompiler = statement.RightValue.Compiler();
-            EV3Type valueType = valueCompiler.Type;
-            if (statement.LeftValue is ArrayExpression)
-                valueType = valueType.ConvertToArray();
-
-            variable.Type = valueType;
-        }
-
-        private void ProcessForStatement(ForStatement statement)
-        {
-            EV3Variable variable = FindVariable(statement);
-            if (variable == null || variable.Type != EV3Type.Unknown) return;
-
-            variable.Type = EV3Type.Float;
+            variables = parser.SymbolTable.InitializedVariables
+                .ToDictionary(v => v.Key, v => new EV3Variable(v.Key, v.Value));
         }
 
         public void CompileCodeForVariableDeclarations(TextWriter writer)
         {
-            foreach (EV3Variable variable in variables.Values)
+            foreach (EV3Variable variable in variables.Values.Where(v => !v.IsConstant))
             {
                 variable.CompileCodeForDeclaration(writer);
             }
@@ -93,7 +63,7 @@ namespace EV3BasicCompiler
 
         public void CompileCodeForVariableInitializations(TextWriter writer)
         {
-            foreach (EV3Variable variable in variables.Values)
+            foreach (EV3Variable variable in variables.Values.Where(v => !v.IsConstant))
             {
                 variable.CompileCodeForInitialization(writer);
             }
