@@ -43,7 +43,9 @@ namespace EV3BasicCompiler.Tests
 
         protected void TestIt(string sbCode, string expectedCode, Func<string, string> extractCodeFunc, bool doOptimization = false)
         {
-            if (!doOptimization)
+            if (doOptimization)
+                sbCode = "'PRAGMA OPTIMIZATION" + Environment.NewLine + sbCode;
+            else
                 sbCode = "'PRAGMA NOOPTIMIZATION" + Environment.NewLine + sbCode;
 
             using (EV3Compiler compiler = new EV3Compiler())

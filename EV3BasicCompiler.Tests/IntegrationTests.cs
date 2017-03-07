@@ -9,7 +9,7 @@ using System.Text;
 namespace EV3BasicCompiler.Tests
 {
     [TestClass]
-    [Ignore]
+    //[Ignore]
     public class IntegrationTests : EV3CompilerTestsBase
     {
         const string SOURCE_FILES_DIR = @"C:\Work\GitHub\EV3Basic\Examples";
@@ -190,10 +190,10 @@ namespace EV3BasicCompiler.Tests
         private string Compile(string fileName, bool withDump)
         {
             using (EV3Compiler compiler = new EV3Compiler())
-            using (StreamReader stringReader = new StreamReader(fileName))
+            using (StreamReader streamReader = new StreamReader(fileName))
             using (StringWriter writer = new StringWriter())
             {
-                compiler.Compile(stringReader, writer);
+                compiler.Compile(streamReader, writer);
 
                 if (withDump)
                     Console.WriteLine(compiler.Dump());

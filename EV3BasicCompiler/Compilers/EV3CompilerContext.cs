@@ -26,7 +26,7 @@ namespace EV3BasicCompiler.Compilers
 
             DoDivisionCheck = true;
             DoBoundsCheck = true;
-            DoOptimization = true;
+            DoOptimization = false;
 
             nextLabel = 0;
             nextThread = 0;

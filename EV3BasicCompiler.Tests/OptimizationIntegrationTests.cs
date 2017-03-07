@@ -9,19 +9,10 @@ using System.Text;
 namespace EV3BasicCompiler.Tests
 {
     [TestClass]
-    //[Ignore]
+    [Ignore]
     public class OptimizationIntegrationTests : EV3CompilerTestsBase
     {
         const string SOURCE_FILES_DIR = @"C:\Work\GitHub\EV3Basic\Examples";
-
-        [TestMethod]
-        public void Test()
-        {
-            foreach (string fileName in Directory.GetFiles(SOURCE_FILES_DIR, "*.sb"))
-            {
-                TestFile(fileName, false);
-            }
-        }
 
         [TestMethod]
         public void Test_ActionLoop()
@@ -173,50 +164,41 @@ namespace EV3BasicCompiler.Tests
             Console.WriteLine();
             Console.WriteLine($"=============> {Path.GetFileName(fileName)} <=============");
             Console.WriteLine();
-            string newCode = NormalizeReferences(NormalizeInlineTemps(NormalizeTemps(NormalizeLabels(Compile(fileName, false)))));
-            string oldCode = NormalizeReferences(NormalizeInlineTemps(NormalizeTemps(NormalizeLabels(CompileOld(fileName)))));
+            string newCode = NormalizeReferences(NormalizeInlineTemps(NormalizeTemps(NormalizeLabels(Compile(fileName, false, true)))));
+            string oldCode = NormalizeReferences(NormalizeInlineTemps(NormalizeTemps(NormalizeLabels(Compile(fileName, false, false)))));
 
             if (withDump)
             {
-                Console.WriteLine("======> COMPILED/EXPECTED CODE <======");
+                Console.WriteLine("======> OPTIMIZED/NOT OPTIMIZED CODE <======");
                 DumpCodeSideBySide(newCode, oldCode);
                 Console.WriteLine("======> END CODE <======");
-                Compile(fileName, true);
+                Compile(fileName, true, true);
             }
 
             CleanupCode(newCode).Should().Be(CleanupCode(oldCode));
         }
 
-        private string Compile(string fileName, bool withDump)
+        private string Compile(string fileName, bool withDump, bool doOptimization)
         {
             using (EV3Compiler compiler = new EV3Compiler())
-            using (StreamReader stringReader = new StreamReader(fileName))
             using (StringWriter writer = new StringWriter())
             {
-                compiler.Compile(stringReader, writer);
+                string sbCode = File.ReadAllText(fileName);
+                if (doOptimization)
+                    sbCode = "'PRAGMA OPTIMIZATION" + Environment.NewLine + sbCode;
+                else
+                    sbCode = "'PRAGMA NOOPTIMIZATION" + Environment.NewLine + sbCode;
+                using (StringReader stringReader = new StringReader(sbCode))
+                {
+                    compiler.Compile(stringReader, writer);
 
-                if (withDump)
-                    Console.WriteLine(compiler.Dump());
+                    if (withDump)
+                        Console.WriteLine(compiler.Dump());
 
-                compiler.Errors.Should().BeEmpty();
+                    compiler.Errors.Should().BeEmpty();
 
-                return writer.ToString();
-            }
-        }
-
-        private string CompileOld(string fileName)
-        {
-            using (FileStream fs = new FileStream(fileName, FileMode.Open))
-            using (MemoryStream ofs = new MemoryStream())
-            {
-                List<String> errors = new List<String>();
-
-                EV3BasicCompiler.Compiler c = new EV3BasicCompiler.Compiler();
-                c.Compile(fs, ofs, errors);
-
-                errors.Should().BeEmpty();
-
-                return Encoding.ASCII.GetString(ofs.ToArray());
+                    return writer.ToString();
+                }
             }
         }
 
