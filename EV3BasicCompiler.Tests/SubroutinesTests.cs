@@ -11,6 +11,7 @@ namespace EV3BasicCompiler.Tests
         public void ShouldDefineEmptySub()
         {
             TestIt(@"
+                Sub1()
                 Sub Sub1
                 EndSub
             ", @"
@@ -19,6 +20,16 @@ namespace EV3BasicCompiler.Tests
                     READ32 RETURNSTACK STACKPOINTER INDEX
                     JR_DYNAMIC INDEX
                 ENDSUB_SUB1:
+            ", ExtractSubroutinesCode);
+        }
+
+        [TestMethod]
+        public void ShouldNotDefineSub_WhenSubIsNotCalled()
+        {
+            TestIt(@"
+                Sub Sub1
+                EndSub
+            ", @"
             ", ExtractSubroutinesCode);
         }
 
@@ -47,5 +58,128 @@ namespace EV3BasicCompiler.Tests
             }
             ", ExtractFullMainProgramCode);
         }
+
+        [TestMethod]
+        public void ShouldDeclareFloatVariableInSubroutine()
+        {
+            TestDeclaration(@"
+                SUB1()
+                Sub SUB1
+                    j = 10
+                EndSub
+            ", @"
+                DATAF VJ
+            ");
+        }
+
+        [TestMethod]
+        public void ShouldDeclareStringVariableInSubroutine()
+        {
+            TestDeclaration(@"
+                SUB1()
+                Sub SUB1
+                    j = ""X""
+                EndSub
+            ", @"
+                DATAS VJ 252
+            ");
+        }
+
+        [TestMethod]
+        public void ShouldDeclareArrayVariableInSubroutine()
+        {
+            TestDeclaration(@"
+                SUB1()
+                Sub SUB1
+                    j[10] = 10
+                EndSub
+            ", @"
+                ARRAY16 VJ 10
+            ");
+        }
+
+        [TestMethod]
+        public void ShouldNotDeclareFloatVariableInSubroutine_WhenSubroutineNotUsed()
+        {
+            TestDeclaration(@"
+                Sub SUB1
+                    j = 10
+                EndSub
+            ", @"
+            ");
+        }
+
+        [TestMethod]
+        public void ShouldNotDeclareStringVariableInSubroutine_WhenSubroutineNotUsed()
+        {
+            TestDeclaration(@"
+                Sub SUB1
+                    j = ""X""
+                EndSub
+            ", @"
+            ");
+        }
+
+        [TestMethod]
+        public void ShouldNotDeclareArrayVariableInSubroutine_WhenSubroutineNotUsed()
+        {
+            TestDeclaration(@"
+                Sub SUB1
+                    j[10] = 10
+                EndSub
+            ", @"
+            ");
+        }
+
+        [TestMethod]
+        public void ShouldUseGlobalFloatVariableInSubroutine()
+        {
+            TestIt(@"
+                j = EV3.Time
+                Sub SUB1
+                    A = j + 10
+                EndSub
+            ", @"
+            ", ExtractSubroutinesCode);
+        }
+
+        [TestMethod]
+        public void ShouldUseGlobalStringVariableInSubroutine()
+        {
+            TestIt(@"
+                j = Buttons.Current
+                Sub SUB1
+                    A = j + ""X""
+                EndSub
+            ", @"
+            ", ExtractSubroutinesCode);
+        }
+
+        [TestMethod]
+        public void ShouldUseGlobalArrayVariableInSubroutine()
+        {
+            TestIt(@"
+                j = Vector.Init(5, 141)
+                Sub SUB1
+                    A = Vector.Sort(5, j)
+                EndSub
+            ", @"
+            ", ExtractSubroutinesCode);
+        }
+
+        [TestMethod]
+        public void ShouldProcessRecursiveSubroutines()
+        {
+            TestDeclaration(@"
+                SUB1()
+                Sub SUB1
+                    j = 10
+                    SUB1()
+                EndSub
+            ", @"
+                DATAF VJ
+            ");
+        }
+
     }
 }

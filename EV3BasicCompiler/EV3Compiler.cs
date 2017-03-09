@@ -28,11 +28,10 @@ namespace EV3BasicCompiler
             SBErrors = new List<SBError>();
             parser = new Parser(SBErrors);
 
-            library = new EV3Library();
-
             variables = new EV3Variables(parser);
-            context = new EV3CompilerContext(variables, library);
-            mainProgram = new EV3MainProgram(parser, variables, context);
+            library = new EV3Library();
+            mainProgram = new EV3MainProgram(parser);
+            context = new EV3CompilerContext(variables, mainProgram, library);
         }
 
         public List<Error> Errors { get { return context.Errors; } }
@@ -47,7 +46,7 @@ namespace EV3BasicCompiler
             LoadLibrary();
             ProcessPragmas();
             LoadVariables();
-            ProcessCode();
+            ProcessCode(context);
 
             string mainProgramCode = GenerateMainProgramCode();
 
@@ -125,9 +124,9 @@ namespace EV3BasicCompiler
             variables.Process();
         }
 
-        private void ProcessCode()
+        private void ProcessCode(EV3CompilerContext context)
         {
-            mainProgram.Process();
+            mainProgram.Process(context);
         }
 
         private string GenerateMainProgramCode()
@@ -196,7 +195,7 @@ namespace EV3BasicCompiler
 
             writer.WriteLine("ENDTHREAD:");
             writer.WriteLine("    RETURN");
-            mainProgram.CompileCodeForSubroutines(writer);
+            mainProgram.CompileCodeForSubroutines(writer, context);
             writer.WriteLine("}");
         }
 

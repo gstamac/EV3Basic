@@ -166,6 +166,11 @@ namespace EV3BasicCompiler
             return parser.ParseTree.GetStatements();
         }
 
+        public static IEnumerable<T> GetStatements<T>(this IEnumerable<Statement> statements) where T : Statement
+        {
+            return statements.GetStatements().OfType<T>();
+        }
+
         public static IEnumerable<Statement> GetStatements(this IEnumerable<Statement> statements)
         {
             foreach (Statement statement in statements)
@@ -219,6 +224,18 @@ namespace EV3BasicCompiler
                 .Concat(parser.GetStatements<WhileStatement>().Select(s => s.Condition))
                 .Concat(parser.GetStatements<ForStatement>().SelectMany(s => new SBExpression[] { s.InitialValue, s.FinalValue, s.StepValue }))
                 .Concat(parser.GetStatements<MethodCallStatement>().Select(s => s.MethodCallExpression));
+            return expressions.Concat(expressions.GetSubExpressions());
+        }
+
+        public static IEnumerable<SBExpression> GetExpressions(this IEnumerable<Statement> statements)
+        {
+            IEnumerable<SBExpression> expressions = statements
+                .GetStatements<AssignmentStatement>().SelectMany(s => new SBExpression[] { s.LeftValue, s.RightValue })
+                .Concat(statements.GetStatements<IfStatement>().Select(s => s.Condition))
+                .Concat(statements.GetStatements<ElseIfStatement>().Select(s => s.Condition))
+                .Concat(statements.GetStatements<WhileStatement>().Select(s => s.Condition))
+                .Concat(statements.GetStatements<ForStatement>().SelectMany(s => new SBExpression[] { s.InitialValue, s.FinalValue, s.StepValue }))
+                .Concat(statements.GetStatements<MethodCallStatement>().Select(s => s.MethodCallExpression));
             return expressions.Concat(expressions.GetSubExpressions());
         }
 

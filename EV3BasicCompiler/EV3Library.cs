@@ -11,7 +11,7 @@ namespace EV3BasicCompiler
         private readonly Dictionary<string, string> modules;
         private readonly List<string> globals;
         private string runtimeInit;
-        private readonly List<EV3SubDefinitionBase> subroutines;
+        private readonly List<EV3SubDefinitionBase> methods;
         private int currentLineNo = 0;
 
         public List<Error> Errors { get; private set; }
@@ -21,7 +21,7 @@ namespace EV3BasicCompiler
             modules = new Dictionary<string, string>();
             globals = new List<string>();
             runtimeInit = "";
-            subroutines = new List<EV3SubDefinitionBase>();
+            methods = new List<EV3SubDefinitionBase>();
             Errors = new List<Error>();
         }
 
@@ -30,7 +30,7 @@ namespace EV3BasicCompiler
             modules.Clear();
             globals.Clear();
             runtimeInit = "";
-            subroutines.Clear();
+            methods.Clear();
             Errors.Clear();
         }
 
@@ -46,7 +46,7 @@ namespace EV3BasicCompiler
                     string cleanLine = lineWithoutComment.Trim();
                     if (cleanLine.StartsWith("subcall"))
                     {
-                        LoadSub(line, reader);
+                        LoadMethod(line, reader);
                     }
                     else if (cleanLine.StartsWith("inline"))
                     {
@@ -64,16 +64,16 @@ namespace EV3BasicCompiler
             }
         }
 
-        public EV3SubDefinitionBase FindSubroutine(string subroutineName)
+        public EV3SubDefinitionBase FindMethod(string subroutineName)
         {
-            return subroutines.FirstOrDefault(s => s.Name.Equals(subroutineName, StringComparison.InvariantCultureIgnoreCase));
+            return methods.FirstOrDefault(s => s.Name.Equals(subroutineName, StringComparison.InvariantCultureIgnoreCase));
         }
 
         public Dictionary<string, EV3Type> GetSubResultTypes()
         {
             Dictionary<string, EV3Type> types = new Dictionary<string, EV3Type>();
 
-            foreach (EV3SubDefinitionBase sub in subroutines)
+            foreach (EV3SubDefinitionBase sub in methods)
             {
                 if (!types.ContainsKey(sub.Name))
                     types.Add(sub.Name, sub.ReturnType);
@@ -107,7 +107,7 @@ namespace EV3BasicCompiler
 
                 references.AddRange(newReferences);
                 code = "";
-                foreach (EV3SubcallDefinition sub in newReferences.Select(s => FindSubroutine(s)).Where(s => s != null))
+                foreach (EV3MethodDefinition sub in newReferences.Select(s => FindMethod(s)).Where(s => s != null))
                 {
                     code += Environment.NewLine + sub.Signature + Environment.NewLine + "{" + Environment.NewLine + sub.Code + Environment.NewLine + "}" + Environment.NewLine;
                 }
@@ -115,9 +115,9 @@ namespace EV3BasicCompiler
             }
         }
 
-        private void LoadSub(string line, StringReader reader)
+        private void LoadMethod(string line, StringReader reader)
         {
-            AddSub(EV3SubcallDefinition.Create(line, GetBlock(reader)), line);
+            AddSub(EV3MethodDefinition.Create(line, GetBlock(reader)), line);
         }
 
         private void LoadInline(string line, StringReader reader)
@@ -132,7 +132,7 @@ namespace EV3BasicCompiler
                 if (sub.ParameterTypes.Any(p => p == EV3Type.Unknown) || sub.ReturnType == EV3Type.Unknown)
                     AddError($"Unknow parameter type for sub ({line})");
                 else
-                    subroutines.Add(sub);
+                    methods.Add(sub);
             }
             else
                 AddError($"Unknow sub definition ({line})");

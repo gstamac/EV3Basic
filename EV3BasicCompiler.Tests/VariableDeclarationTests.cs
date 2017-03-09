@@ -446,6 +446,21 @@ namespace EV3BasicCompiler.Tests
         }
 
         [TestMethod]
+        public void ShouldDeclareFloatArray_WhenUsedInSubroutine()
+        {
+            TestDeclaration(@"
+                j = Vector.Init(5, 141)
+                SUB1()
+                Sub SUB1
+                    A = Vector.Sort(5, j)
+                EndSub
+            ", @"
+                ARRAY16 VJ 2
+                ARRAY16 VA 2
+            ");
+        }
+
+        [TestMethod]
         public void ShouldDeclareFloatTempVariables()
         {
             TestIt(@"

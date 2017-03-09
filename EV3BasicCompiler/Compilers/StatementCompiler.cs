@@ -8,7 +8,7 @@ namespace EV3BasicCompiler.Compilers
     public abstract class StatementCompiler<T> : IStatementCompiler where T : Statement
     {
         public EV3CompilerContext Context { get; }
-        protected T ParentStatement { get; }
+        public T ParentStatement { get; }
 
         public StatementCompiler(T statement, EV3CompilerContext context)
         {

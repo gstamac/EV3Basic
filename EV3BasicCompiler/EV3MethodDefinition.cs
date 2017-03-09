@@ -6,19 +6,19 @@ using EV3BasicCompiler.Compilers;
 
 namespace EV3BasicCompiler
 {
-    public class EV3SubcallDefinition : EV3SubDefinitionBase
+    public class EV3MethodDefinition : EV3SubDefinitionBase
     {
-        private EV3SubcallDefinition(string name, string signature, string code) : base(name, signature, code)
+        private EV3MethodDefinition(string name, string signature, string code) : base(name, signature, code)
         {
             ParseParameters();
         }
 
-        public static EV3SubcallDefinition Create(string signature, string code)
+        public static EV3MethodDefinition Create(string signature, string code)
         {
             Match match = Regex.Match(signature, "subcall[ \t]*([^ \t]+)[ \t]*", RegexOptions.Singleline);
             if (match.Success)
             {
-                return new EV3SubcallDefinition(match.Groups[1].Value, signature, code);
+                return new EV3MethodDefinition(match.Groups[1].Value, signature, code);
             }
             return null;
         }
@@ -73,5 +73,20 @@ namespace EV3BasicCompiler
             ReturnType = NormalizeType(ReturnType);
         }
 
+        protected EV3Type NormalizeType(EV3Type pt)
+        {
+            switch (pt)
+            {
+                case EV3Type.Int8:
+                case EV3Type.Int16:
+                case EV3Type.Int32:
+                    return EV3Type.Float;
+                case EV3Type.Int8Array:
+                case EV3Type.Int16Array:
+                case EV3Type.Int32Array:
+                    return EV3Type.FloatArray;
+            }
+            return pt;
+        }
     }
 }

@@ -63,5 +63,14 @@ namespace EV3BasicCompiler.Tests
                 }
             ", ExtractFullMainProgramCode);
         }
+
+        [TestMethod]
+        public void ShouldProvideCorrectErrorLineAndColumn()
+        {
+            TestCompileFailure($@"
+                If ""X"" = 1 Then
+                EndIf
+            ", "Boolean operations on unrelated types are not permited", 2, 20);
+        }
     }
 }

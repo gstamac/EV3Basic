@@ -15,20 +15,16 @@ namespace EV3BasicCompiler
     public class EV3MainProgram
     {
         private readonly Parser parser;
-        private readonly EV3Variables variables;
-        private readonly EV3CompilerContext context;
         private List<ThreadStatementCompiler> threadCompilers;
-        private readonly List<EV3SubDefinitionBase> subroutines;
+        private readonly List<EV3SubDefinition> subroutines;
 
         public List<Error> Errors { get; private set; }
 
-        public EV3MainProgram(Parser parser, EV3Variables variables, EV3CompilerContext context)
+        public EV3MainProgram(Parser parser)
         {
             this.parser = parser;
-            this.variables = variables;
-            this.context = context;
 
-            subroutines = new List<EV3SubDefinitionBase>();
+            subroutines = new List<EV3SubDefinition>();
 
             Errors = new List<Error>();
 
@@ -41,10 +37,10 @@ namespace EV3BasicCompiler
             Errors.Clear();
         }
 
-        public void Process()
+        public void Process(EV3CompilerContext context)
         {
             ProcessThreads();
-            ProcessSubroutines();
+            ProcessSubroutines(context);
         }
 
         private void ProcessThreads()
@@ -52,16 +48,33 @@ namespace EV3BasicCompiler
             threadCompilers = parser.GetStatements<AssignmentStatement>().Select(s => s.Compiler()).OfType<ThreadStatementCompiler>().ToList();
         }
 
-        private void ProcessSubroutines()
+        private void ProcessSubroutines(EV3CompilerContext context)
         {
             foreach (SubroutineStatementCompiler compiler in parser.GetStatements<SubroutineStatement>().Select(s => s.Compiler<SubroutineStatementCompiler>()))
             {
-                StringWriter code = new StringWriter();
-                compiler.Compile(code, true);
-
-                EV3SubDefinition sub = new EV3SubDefinition(compiler.Ev3Name, compiler.Ev3Name, code.ToString());
+                EV3SubDefinition sub = new EV3SubDefinition(compiler.Ev3Name, compiler.Ev3Name, () =>
+                {
+                    StringWriter code = new StringWriter();
+                    compiler.Compile(code, true);
+                    return code.ToString();
+                });
+                if (threadCompilers.Any(t => t.ThreadName.Equals(compiler.Ev3Name, StringComparison.InvariantCultureIgnoreCase)))
+                {
+                    foreach (SBExpression expression in compiler.ParentStatement.SubroutineBody.GetExpressions())
+                    {
+                        if (expression is IdentifierExpression)
+                            context.FindVariable(((IdentifierExpression)expression).VariableName()).IsConstant = false;
+                        else if (expression is ArrayExpression)
+                            context.FindVariable(((ArrayExpression)expression).VariableName()).IsConstant = false;
+                    }
+                }
                 subroutines.Add(sub);
             }
+        }
+
+        public EV3SubDefinition FindSubroutine(string subroutineName)
+        {
+            return subroutines.FirstOrDefault(s => s.Name.Equals(subroutineName, StringComparison.InvariantCultureIgnoreCase));
         }
 
         public void CompileCodeForRunCounterStorageDeclarations(TextWriter writer)
@@ -104,9 +117,9 @@ namespace EV3BasicCompiler
                 threadStatementCompiler.CompileDispatchTable(writer);
         }
 
-        public void CompileCodeForSubroutines(TextWriter writer)
+        public void CompileCodeForSubroutines(TextWriter writer, EV3CompilerContext context)
         {
-            foreach (EV3SubDefinitionBase sub in subroutines)
+            foreach (EV3SubDefinition sub in subroutines.Where(s => s.IsReferenced))
             {
                 writer.WriteLine();
                 sub.Compile(writer, context, new string[0], null);

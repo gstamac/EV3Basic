@@ -16,7 +16,7 @@ namespace EV3BasicCompiler.Compilers
         protected override EV3Type CalculateType()
         {
             string methodName = ParentExpression.FullName().ToUpper();
-            EV3SubDefinitionBase sub = Context.FindSubroutine(methodName);
+            EV3SubDefinitionBase sub = Context.FindMethod(methodName);
             if (sub != null)
                 return sub.ReturnType;
 
@@ -30,7 +30,7 @@ namespace EV3BasicCompiler.Compilers
 
         public override string Compile(TextWriter writer, IEV3Variable variable)
         {
-            EV3SubDefinitionBase sub = Context.FindSubroutine(Value);
+            EV3SubDefinitionBase sub = Context.FindMethod(Value);
             if (sub != null)
             {
                 return CompileMethodCall(writer, variable, sub);

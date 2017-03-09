@@ -35,6 +35,21 @@ namespace EV3BasicCompiler.Tests
         }
 
         [TestMethod]
+        public void ShouldDeclareVariablesUsedInThread()
+        {
+            TestDeclaration(@"
+                Thread.Run = THREAD1
+
+                Sub THREAD1
+                    i = 10
+                EndSub
+            ", @"
+                DATAF VI
+                DATA32 RUNCOUNTER_THREAD1
+            ");
+        }
+
+        [TestMethod]
         public void ShouldCompileThreadCode()
         {
             TestIt(@"

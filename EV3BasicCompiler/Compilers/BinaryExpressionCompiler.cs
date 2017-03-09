@@ -31,7 +31,7 @@ namespace EV3BasicCompiler.Compilers
             {
                 EV3Type commonType = CalculateCommonType(LeftCompiler.Type, RightCompiler.Type);
 
-                if (commonType.IsArray()) return null;
+                if (commonType.IsArray() || commonType == EV3Type.Unknown) return null;
 
                 if (commonType.IsNumber())
                 {
@@ -100,7 +100,7 @@ namespace EV3BasicCompiler.Compilers
                             case Token.Division:
                                 if (Context.DoDivisionCheck)
                                 {
-                                    var sub = Context.FindSubroutine("Math.DivCheck");
+                                    var sub = Context.FindMethod("Math.DivCheck");
                                     if (variable.Type.IsArray() && !sub.ReturnType.IsArray())
                                         variable = tempVariables.CreateVariable(variable.Type.BaseType());
                                     sub.Compile(writer, Context, new string[] { leftValue, rightValue }, variable.Ev3Name);

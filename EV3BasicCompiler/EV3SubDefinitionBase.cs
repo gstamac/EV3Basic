@@ -3,14 +3,15 @@ using System.Linq;
 using System.IO;
 using System.Text.RegularExpressions;
 using EV3BasicCompiler.Compilers;
+using System;
 
 namespace EV3BasicCompiler
 {
     public abstract class EV3SubDefinitionBase
     {
-        public string Name { get; private set; }
-        public string Signature { get; private set; }
-        public string Code { get; private set; }
+        public string Name { get; }
+        public string Signature { get; }
+        public virtual string Code { get; private set; }
         public List<EV3Type> ParameterTypes { get; protected set; }
         public EV3Type ReturnType { get; protected set; }
 
@@ -45,22 +46,6 @@ namespace EV3BasicCompiler
                     return EV3Type.Void;
             }
             return EV3Type.Unknown;
-        }
-
-        protected EV3Type NormalizeType(EV3Type pt)
-        {
-            switch (pt)
-            {
-                case EV3Type.Int8:
-                case EV3Type.Int16:
-                case EV3Type.Int32:
-                    return EV3Type.Float;
-                case EV3Type.Int8Array:
-                case EV3Type.Int16Array:
-                case EV3Type.Int32Array:
-                    return EV3Type.FloatArray;
-            }
-            return pt;
         }
     }
 }

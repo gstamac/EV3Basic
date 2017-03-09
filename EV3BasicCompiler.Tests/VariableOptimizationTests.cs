@@ -195,11 +195,23 @@ namespace EV3BasicCompiler.Tests
         public void ShouldDeclareFloat_WhenAssignedInSubroutineBody()
         {
             TestDeclaration(@"
+                X()
                 Sub X
                     j = 3
                 EndSub
             ", @"
                 DATAF VJ
+            ", true);
+        }
+
+        [TestMethod]
+        public void ShouldNotDeclareFloat_WhenAssignedInSubroutineBodyAndNotUsed()
+        {
+            TestDeclaration(@"
+                Sub X
+                    j = 3
+                EndSub
+            ", @"
             ", true);
         }
 
@@ -265,5 +277,41 @@ namespace EV3BasicCompiler.Tests
             ", @"
             ", true);
         }
+
+        [TestMethod]
+        public void ShouldDeclareAllVariables_WhenUsedInThreadSubroutine()
+        {
+            TestDeclaration(@"
+                i = 10
+                Thread.Run = THREADA
+                Sub THREADA
+                    j = i
+                EndSub
+            ", @"
+                DATAF VI
+                DATAF VJ
+                DATA32 RUNCOUNTER_THREADA
+            ", true);
+        }
+
+        [TestMethod]
+        public void ShouldUseVariable_WhenUsedInThreadSubroutine()
+        {
+            TestIt(@"
+                SMALL = Vector.Init(5, 141)
+                Thread.Run = THREADA
+                Sub THREADA
+                    A = Vector.Sort(5, SMALL)
+                EndSub
+            ", @"
+                SUB_THREADA:
+                    CALL VECTOR.SORT 5.0 VSMALL VA
+                    SUB8 STACKPOINTER 1 STACKPOINTER
+                    READ32 RETURNSTACK STACKPOINTER INDEX
+                    JR_DYNAMIC INDEX
+                ENDSUB_THREADA:
+            ", ExtractSubroutinesCode, true);
+        }
+
     }
 }

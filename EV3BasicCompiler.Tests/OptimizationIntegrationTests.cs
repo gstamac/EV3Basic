@@ -184,10 +184,7 @@ namespace EV3BasicCompiler.Tests
             using (StringWriter writer = new StringWriter())
             {
                 string sbCode = File.ReadAllText(fileName);
-                if (doOptimization)
-                    sbCode = "'PRAGMA OPTIMIZATION" + Environment.NewLine + sbCode;
-                else
-                    sbCode = "'PRAGMA NOOPTIMIZATION" + Environment.NewLine + sbCode;
+                sbCode = AttachOptimizationPragma(sbCode, doOptimization);
                 using (StringReader stringReader = new StringReader(sbCode))
                 {
                     compiler.Compile(stringReader, writer);

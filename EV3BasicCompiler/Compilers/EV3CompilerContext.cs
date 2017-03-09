@@ -11,6 +11,7 @@ namespace EV3BasicCompiler.Compilers
         private int nextLabel;
         private int nextThread;
         private readonly EV3Variables variables;
+        private EV3MainProgram mainProgram;
         private EV3Library library;
 
         public bool DoDivisionCheck { get; set; }
@@ -19,9 +20,10 @@ namespace EV3BasicCompiler.Compilers
 
         public List<Error> Errors { get; private set; }
 
-        public EV3CompilerContext(EV3Variables variables, EV3Library library)
+        public EV3CompilerContext(EV3Variables variables, EV3MainProgram mainProgram, EV3Library library)
         {
             this.variables = variables;
+            this.mainProgram = mainProgram;
             this.library = library;
 
             DoDivisionCheck = true;
@@ -54,9 +56,14 @@ namespace EV3BasicCompiler.Compilers
             return variables.FindVariable(forStatement);
         }
 
-        public EV3SubDefinitionBase FindSubroutine(string subroutineName)
+        public EV3SubDefinitionBase FindMethod(string methodName)
         {
-            return library.FindSubroutine(subroutineName);
+            return library.FindMethod(methodName);
+        }
+
+        public EV3SubDefinition FindSubroutine(string subroutineName)
+        {
+            return mainProgram.FindSubroutine(subroutineName);
         }
 
         public EV3Variables.TempVariableCreator UseTempVariables()

@@ -16,6 +16,8 @@ namespace EV3BasicCompiler.Compilers
 
         public override void Compile(TextWriter writer, bool isRootStatement)
         {
+            Context.FindSubroutine(ThreadName).IsReferenced = true;
+
             int label = Context.GetNextLabelNumber();
             writer.WriteLine($"    DATA32 tmp{label}");
             writer.WriteLine($"    CALL GETANDINC32 RUNCOUNTER_{ThreadName} 1  RUNCOUNTER_{ThreadName} tmp{label}");

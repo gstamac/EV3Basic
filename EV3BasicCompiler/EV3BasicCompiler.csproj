@@ -56,7 +56,6 @@
     <Compile Include="Compilers\BooleanExpressionCompiler.cs" />
     <Compile Include="Compilers\ComparisonExpressionCompiler.cs" />
     <Compile Include="Compilers\ElseIfStatementCompiler.cs" />
-    <Compile Include="Compilers\EmptyStatementCompiler.cs" />
     <Compile Include="Compilers\EV3CompilerContext.cs" />
     <Compile Include="Compilers\ExpressionCompiler.cs" />
     <Compile Include="Compilers\ForStatementCompiler.cs" />
@@ -77,7 +76,7 @@
     <Compile Include="EV3MainProgram.cs" />
     <Compile Include="EV3Compiler.cs" />
     <Compile Include="EV3Library.cs" />
-    <Compile Include="EV3SubcallDefinition.cs" />
+    <Compile Include="EV3MethodDefinition.cs" />
     <Compile Include="EV3SubDefinition.cs" />
     <Compile Include="EV3SubDefinitionBase.cs" />
     <Compile Include="EV3Variables.cs" />

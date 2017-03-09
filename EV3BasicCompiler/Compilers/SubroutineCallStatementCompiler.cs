@@ -14,6 +14,8 @@ namespace EV3BasicCompiler.Compilers
 
         public override void Compile(TextWriter writer, bool isRootStatement)
         {
+            Context.FindSubroutine(Ev3Name).IsReferenced = true;
+
             int label = Context.GetNextLabelNumber();
             writer.WriteLine($"    WRITE32 ENDSUB_{Ev3Name}:CALLSUB{label} STACKPOINTER RETURNSTACK");
             writer.WriteLine($"    ADD8 STACKPOINTER 1 STACKPOINTER");
